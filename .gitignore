@@ -1,0 +1,41 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Testing & Cache
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# Scratch scripts
+scratch/
+
+# Database files
+database/*.duckdb
+database/*.duckdb.wal
+database/*.tmp
+*.duckdb
+
+# Data directories (Protect competition data)
+data/raw/*
+!data/raw/.gitkeep
+data/staging/*
+!data/staging/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/exports/*
+!data/exports/.gitkeep
+
+# Environment secrets
+.env
+*.env
