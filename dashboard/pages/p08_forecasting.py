@@ -4,6 +4,7 @@ Weekly category demand projections, uncertainty intervals, and chronological bac
 FORECASTS PROJECT PURCHASE VOLUME — NEVER INVENTORY REQUIREMENTS.
 """
 
+from typing import Optional
 import duckdb
 import streamlit as st
 import pandas as pd
@@ -12,16 +13,18 @@ from dashboard.visualisations.forecast_charts import (
     plot_demand_forecast,
     plot_backtest_comparison,
 )
-from src.forecasting.demand_forecaster import DemandForecaster
+from dashboard.data_service import (
+    get_top_forecasting_categories_cached,
+    get_demand_forecast_cached,
+    get_backtest_cached,
+)
 
 
-def render(conn: duckdb.DuckDBPyConnection) -> None:
-    st.markdown("## 📈 Fashion Demand Forecasting & Backtesting")
+def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
+    st.markdown("## Fashion Demand Forecasting & Backtesting")
     st.markdown(
         "Generate multi-week purchase volume projections and validate statistical models using chronological holdout backtests."
     )
-
-    forecaster = DemandForecaster(conn)
 
     # 1. Category & Level Selection Controls
     c1, c2, c3 = st.columns([4, 4, 4])
@@ -33,13 +36,9 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
         )
     level_key = level_choice.lower().replace(" ", "_")
 
-    # Fetch top categories for this level
-    col_name = "department_name" if level_key == "department" else ("product_group_name" if "product" in level_key else "garment_group_name")
-    top_cats = [r[0] for r in conn.execute(f"""
-        SELECT a.{col_name}
-        FROM articles a JOIN transactions t ON a.article_id = t.article_id
-        GROUP BY a.{col_name} HAVING COUNT(*) >= 5000 ORDER BY COUNT(*) DESC LIMIT 25
-    """).fetchall()]
+    top_cats = get_top_forecasting_categories_cached(level=level_choice)
+    if not top_cats:
+        top_cats = ["Jersey Basic", "Baby Basics", "Trousers"]
 
     with c2:
         selected_cat = st.selectbox("Select Target Category", options=top_cats, index=0)
@@ -49,15 +48,15 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
 
     st.markdown("---")
 
-    t1, t2 = st.tabs(["🔮 Demand Projection & Prediction Bands", "🧪 Chronological Backtest Evaluation"])
+    t1, t2 = st.tabs(["Demand Projection & Prediction Bands", "Chronological Backtest Evaluation"])
 
     with t1:
         with st.spinner(f"Computing demand forecast for '{selected_cat}'..."):
-            forecast_data = forecaster.generate_forward_forecast(selected_cat, level=level_key, horizon=horizon)
+            forecast_data = get_demand_forecast_cached(selected_cat, level=level_key, horizon=horizon)
 
         st.plotly_chart(plot_demand_forecast(forecast_data), use_container_width=True)
 
-        with st.expander("📋 View Forecast Values & Uncertainty Bands"):
+        with st.expander("View Forecast Values & Uncertainty Bands"):
             proj_df = pd.DataFrame({
                 "Forecast Week": forecast_data["future_dates"],
                 "Holt-Winters Projected Volume": forecast_data["forecast_hw"],
@@ -68,21 +67,21 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
             st.dataframe(proj_df, use_container_width=True, hide_index=True)
 
     with t2:
-        st.markdown("### 🏆 Walk-Forward Chronological Model Backtesting")
+        st.markdown("### Walk-Forward Chronological Model Backtesting")
         st.markdown(
             "Evaluates forecast error across an unobserved 8-week holdout window using **MAE, RMSE, and WAPE** (Weighted Absolute Percentage Error). "
             "No unvalidated forecast is presented without empirical backtesting."
         )
 
         with st.spinner(f"Backtesting models on '{selected_cat}'..."):
-            backtest_res = forecaster.backtest(selected_cat, level=level_key, horizon=horizon)
+            backtest_res = get_backtest_cached(selected_cat, level=level_key, horizon=horizon)
 
         if "error" in backtest_res:
             st.error(backtest_res["error"])
         else:
             colA, colB = st.columns([5, 7])
             with colA:
-                st.markdown("#### 🥇 Model Leaderboard")
+                st.markdown("#### Model Leaderboard")
                 st.dataframe(backtest_res["leaderboard"], use_container_width=True, hide_index=True)
                 st.success(f"Best Performing Model for this Series: **{backtest_res['best_model']}**")
 
@@ -90,7 +89,7 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
                 st.plotly_chart(plot_backtest_comparison(backtest_res), use_container_width=True)
 
     st.info(
-        "💡 **Critical Planning Boundary:** Purchase volume forecasts project expected checkout lines based on historical demand signals. "
+        "**Critical Planning Boundary:** Purchase volume forecasts project expected checkout lines based on historical demand signals. "
         "Because inventory availability, safety stock, lead times, and warehouse allocations are absent from the dataset, "
         "these figures must NOT be interpreted as raw inventory purchase orders."
     )

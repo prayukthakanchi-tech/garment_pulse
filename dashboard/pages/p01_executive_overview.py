@@ -3,32 +3,32 @@ GarmentPulse Dashboard — Page 1: Executive Overview
 High-level merchandising demand overview, portfolio KPIs, and volume trends.
 """
 
+from typing import Any, Optional
 import duckdb
 import streamlit as st
 import pandas as pd
+import plotly.graph_objects as go
 
 from dashboard.components.metrics import render_kpi_row
 from dashboard.components.charts import apply_chart_style
 from dashboard.visualisations.category_charts import plot_category_ranking_bar
-from src.analytics.category_intelligence import CategoryIntelligence
+from dashboard.data_service import (
+    get_executive_kpis,
+    get_monthly_volume_trend,
+    get_category_performance_cached,
+    get_category_growth_cached,
+)
 
 
-def render(conn: duckdb.DuckDBPyConnection) -> None:
-    st.markdown("## 📈 Executive Merchandising Overview")
+def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
+    st.markdown("## Executive Merchandising Overview")
     st.markdown(
         "Macro demand signals, portfolio volume velocity, and top department contributions across the observation window."
     )
 
     # 1. Macro KPIs
-    kpi_sql = """
-    SELECT
-        COUNT(*) AS total_volume,
-        COUNT(DISTINCT customer_id) AS total_customers,
-        COUNT(DISTINCT article_id) AS total_articles,
-        ROUND(AVG(price), 6) AS avg_price_index
-    FROM transactions
-    """
-    macro = conn.execute(kpi_sql).fetchdf().to_dict(orient="records")[0]
+    with st.spinner("Loading portfolio metrics..."):
+        macro = get_executive_kpis()
 
     render_kpi_row([
         {
@@ -56,36 +56,22 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
     st.markdown("---")
 
     # 2. Charts Row
-    col1, col2 = st.columns([6, 5])
-
-    ci = CategoryIntelligence(conn)
-    dept_df = ci.get_category_performance(level="department")
+    col1, col2 = st.columns([6, 6])
 
     with col1:
+        dept_df = get_category_performance_cached(level="department", min_transactions=200)
         st.plotly_chart(plot_category_ranking_bar(dept_df, top_n=10), use_container_width=True)
 
     with col2:
-        # Monthly Volume Trend
-        trend_sql = """
-        SELECT
-            DATE_TRUNC('month', t_dat) AS month,
-            COUNT(*) AS monthly_volume,
-            COUNT(DISTINCT customer_id) AS active_customers
-        FROM transactions
-        GROUP BY DATE_TRUNC('month', t_dat)
-        ORDER BY month ASC
-        """
-        trend_df = conn.execute(trend_sql).fetchdf()
-
-        import plotly.graph_objects as go
+        trend_df = get_monthly_volume_trend()
         fig = go.Figure()
         fig.add_trace(
             go.Scatter(
                 x=trend_df["month"],
                 y=trend_df["monthly_volume"],
                 mode="lines+markers",
-                line=dict(color="#264653", width=2.5),
-                marker=dict(size=4),
+                line=dict(color="#1E3A8A", width=2.5),
+                marker=dict(size=5, color="#1D4ED8"),
                 name="Monthly Purchase Volume",
                 hovertemplate="Month: %{x|%Y-%m}<br>Volume: %{y:,}<extra></extra>",
             )
@@ -95,15 +81,15 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
             title="Portfolio Purchase Volume Trajectory (Monthly)",
             x_title="Observation Month",
             y_title="Purchase Lines",
-            height=450,
+            height=420,
             show_legend=False,
         )
         st.plotly_chart(fig, use_container_width=True)
 
     # 3. Category Momentum Highlights
-    st.markdown("### ⚡ Category Demand Momentum Leaders")
-    growth_df = ci.get_category_growth(level="department")
-    top_accel = growth_df[growth_df["momentum_signal"] == "Accelerating Demand"].head(5)
+    st.markdown("### Category Demand Momentum Leaders")
+    growth_df = get_category_growth_cached(level="department", min_transactions=200)
+    top_accel = growth_df[growth_df["momentum_signal"] == "Accelerating Demand"].head(6)
 
     if not top_accel.empty:
         st.dataframe(
@@ -121,8 +107,5 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
             use_container_width=True,
             hide_index=True,
         )
-
-    st.info(
-        "💡 **Data Limitation Notice:** Transaction values represent normalised purchase-price indices, not actual monetary revenues. "
-        "Inventory levels and stockout records are absent from the source dataset, so volume growth reflects observed consumer demand pull rather than supply availability."
-    )
+    else:
+        st.info("No departments currently in Accelerating Demand phase under current filter criteria.")

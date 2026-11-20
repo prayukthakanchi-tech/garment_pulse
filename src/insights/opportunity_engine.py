@@ -60,26 +60,31 @@ class OpportunityEngine:
         ),
         repeat_activity AS (
             SELECT
-                a.{col} AS category_name,
+                cust_tx.category_name,
                 COUNT(DISTINCT CASE WHEN cust_tx.tx_count > 1 THEN cust_tx.customer_id END) * 1.0 / 
                 NULLIF(COUNT(DISTINCT cust_tx.customer_id), 0) AS repeat_rate
             FROM (
-                SELECT t.customer_id, a.{col}, COUNT(*) AS tx_count
+                SELECT t.customer_id, a.{col} AS category_name, COUNT(*) AS tx_count
                 FROM transactions t
                 JOIN articles a ON t.article_id = a.article_id
+                CROSS JOIN periods p
+                WHERE t.t_dat > p.prev_start
                 GROUP BY t.customer_id, a.{col}
             ) cust_tx
-            JOIN articles a ON 1=1
-            GROUP BY a.{col}
+            GROUP BY cust_tx.category_name
+        ),
+        article_agg AS (
+            SELECT article_id, COUNT(*) AS art_vol
+            FROM transactions
+            GROUP BY article_id
         ),
         article_shares AS (
             SELECT
                 a.{col} AS category_name,
-                t.article_id,
-                COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (PARTITION BY a.{col}) AS art_share_pct
-            FROM transactions t
-            JOIN articles a ON t.article_id = a.article_id
-            GROUP BY a.{col}, t.article_id
+                art.article_id,
+                art.art_vol * 100.0 / SUM(art.art_vol) OVER (PARTITION BY a.{col}) AS art_share_pct
+            FROM article_agg art
+            JOIN articles a ON art.article_id = a.article_id
         ),
         concentration AS (
             SELECT
@@ -168,6 +173,7 @@ class OpportunityEngine:
         level: str = "department",
         min_volume: int = MIN_CATEGORY_TRANSACTIONS,
         top_n: int = 8,
+        scores_df: Optional[pd.DataFrame] = None,
     ) -> List[Dict[str, Any]]:
         """Generates structured 5-part merchandising recommendation cards.
         
@@ -178,7 +184,7 @@ class OpportunityEngine:
         - RECOMMENDED ACTION: Assortment investigation
         - LIMITATION: Missing inventory / cost context
         """
-        df = self.calculate_opportunity_scores(level=level, min_volume=min_volume)
+        df = scores_df if scores_df is not None else self.calculate_opportunity_scores(level=level, min_volume=min_volume)
         if df.empty:
             return []
 

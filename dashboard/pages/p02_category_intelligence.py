@@ -3,6 +3,7 @@ GarmentPulse Dashboard — Page 2: Category Intelligence (Module A)
 Deep-dive performance, momentum, concentration, and YoY analytics across category hierarchies.
 """
 
+from typing import Optional
 import duckdb
 import streamlit as st
 import pandas as pd
@@ -12,18 +13,20 @@ from dashboard.visualisations.category_charts import (
     plot_category_growth_scatter,
     plot_category_treemap,
 )
-from src.analytics.category_intelligence import CategoryIntelligence
+from dashboard.data_service import (
+    get_category_performance_cached,
+    get_category_growth_cached,
+    get_yoy_comparison_cached,
+)
 
 
-def render(conn: duckdb.DuckDBPyConnection) -> None:
-    st.markdown("## 🏷️ Category Performance & Momentum Intelligence")
+def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
+    st.markdown("## Category Performance & Momentum Intelligence")
     st.markdown(
         "Analyze demand distribution, growth velocity, and concentration across departments, sections, and garment groups."
     )
 
-    ci = CategoryIntelligence(conn)
-
-    # Level selector controls
+    # Controls
     c1, c2, c3 = st.columns([4, 4, 4])
     with c1:
         level_choice = st.selectbox(
@@ -46,7 +49,8 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
     level_key = level_choice.lower().replace(" ", "_")
 
     if view_mode == "Volume & Concentration":
-        perf_df = ci.get_category_performance(level=level_key, min_transactions=min_vol)
+        with st.spinner(f"Loading {level_choice} performance data..."):
+            perf_df = get_category_performance_cached(level=level_key, min_transactions=min_vol)
 
         st.plotly_chart(plot_category_ranking_bar(perf_df, top_n=15), use_container_width=True)
 
@@ -54,7 +58,7 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
         with colA:
             st.plotly_chart(plot_category_treemap(perf_df, top_n=25), use_container_width=True)
         with colB:
-            st.markdown("### 📊 Category Assortment Performance Table")
+            st.markdown("### Assortment Performance Detail")
             st.dataframe(
                 perf_df[[
                     "category_name", "purchase_volume", "unique_customers",
@@ -73,13 +77,14 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
             )
 
     elif view_mode == "Growth Momentum":
-        growth_df = ci.get_category_growth(level=level_key, min_transactions=min_vol)
+        with st.spinner(f"Computing {level_choice} momentum metrics..."):
+            growth_df = get_category_growth_cached(level=level_key, min_transactions=min_vol)
 
         st.plotly_chart(plot_category_growth_scatter(growth_df, top_n=30), use_container_width=True)
 
         c_left, c_right = st.columns(2)
         with c_left:
-            st.markdown("#### 🚀 Top Growing Categories (Recent 4 Wks)")
+            st.markdown("#### Top Growing Categories (Recent 4 Wks)")
             st.dataframe(
                 growth_df.dropna(subset=["volume_growth_pct"]).head(10)[[
                     "category_name", "recent_volume", "prev_volume", "volume_growth_pct", "momentum_signal"
@@ -94,7 +99,7 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
                 hide_index=True,
             )
         with c_right:
-            st.markdown("#### 📉 Categories Showing Deceleration")
+            st.markdown("#### Categories Showing Deceleration")
             st.dataframe(
                 growth_df.dropna(subset=["volume_growth_pct"]).tail(10).iloc[::-1][[
                     "category_name", "recent_volume", "prev_volume", "volume_growth_pct", "momentum_signal"
@@ -110,19 +115,19 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
             )
 
     else:
-        st.markdown("### 📅 Year-over-Year Comparative Analysis (2019 vs 2018)")
-        yoy_df = ci.get_yoy_comparison(level=level_key)
+        st.markdown("### Year-over-Year Comparative Analysis (2019 vs 2018)")
+        with st.spinner(f"Aggregating YoY comparisons for {level_choice}..."):
+            yoy_df = get_yoy_comparison_cached(level=level_key)
+
         st.dataframe(
             yoy_df.rename(columns={
                 "category_name": level_choice,
                 "calendar_month": "Month (1-12)",
                 "volume_2018": "2018 Volume",
                 "volume_2019": "2019 Volume",
-                "volume_2020": "2020 Volume",
-                "yoy_growth_2019_vs_2018_pct": "YoY Growth 2019 vs 2018 (%)",
+                "yoy_volume_change": "Volume Shift",
+                "yoy_growth_pct": "YoY Growth Rate (%)",
             }),
             use_container_width=True,
             hide_index=True,
         )
-
-    st.caption("Threshold rule: Categories with fewer than {min_vol} transactions are excluded to safeguard metric validity.")

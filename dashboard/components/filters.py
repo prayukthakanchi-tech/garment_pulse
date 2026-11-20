@@ -29,7 +29,7 @@ def render_sidebar_filters(conn: duckdb.DuckDBPyConnection) -> dict:
     """Standardized filter panel rendered in the Streamlit sidebar."""
     options = get_filter_options(conn)
 
-    st.sidebar.markdown("### 🔍 Filters & Scopes")
+    st.sidebar.markdown("### Filters & Scopes")
 
     # Date range selector
     date_range = st.sidebar.date_input(

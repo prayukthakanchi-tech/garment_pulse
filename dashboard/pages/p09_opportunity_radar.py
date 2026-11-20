@@ -3,6 +3,7 @@ GarmentPulse Dashboard — Page 9: Commercial Opportunity Radar & AI Assistant (
 Multi-factor opportunity scoring, spider radar charts, 5-part merchandising action cards, and guarded AI decision assistant.
 """
 
+from typing import Optional
 import duckdb
 import streamlit as st
 import pandas as pd
@@ -11,20 +12,21 @@ from dashboard.visualisations.opportunity_charts import (
     plot_opportunity_radar,
     plot_opportunity_ranking_bar,
 )
-from src.insights.opportunity_engine import OpportunityEngine
+from dashboard.data_service import (
+    get_opportunity_scores_cached,
+    get_opportunity_recommendations_cached,
+)
+from src.database.connection import get_cursor
 from src.insights.ai_assistant import AIBusinessAssistant
 
 
-def render(conn: duckdb.DuckDBPyConnection) -> None:
-    st.markdown("## 🧭 Commercial Opportunity Radar & AI Decision Assistant")
+def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
+    st.markdown("## Commercial Opportunity Radar & AI Decision Assistant")
     st.markdown(
         "Platform differentiating engine: Synthesizes volume growth, customer expansion, repeat retention, and assortment concentration into actionable merchandising priorities."
     )
 
-    oe = OpportunityEngine(conn)
-    assistant = AIBusinessAssistant(conn)
-
-    t1, t2, t3 = st.tabs(["🎯 Opportunity Radar & Rankings", "📋 Structured Merchandising Action Cards", "🤖 AI Merchandising Assistant"])
+    t1, t2, t3 = st.tabs(["Opportunity Radar & Rankings", "Structured Merchandising Action Cards", "AI Merchandising Assistant"])
 
     with t1:
         col_ctrl1, col_ctrl2 = st.columns([6, 6])
@@ -32,7 +34,8 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
             level_sel = st.selectbox("Category Taxonomy", options=["Department", "Product Group", "Garment Group"], index=0)
         level_k = level_sel.lower().replace(" ", "_")
 
-        scores_df = oe.calculate_opportunity_scores(level=level_k)
+        with st.spinner("Calculating multi-factor opportunity scores..."):
+            scores_df = get_opportunity_scores_cached(level=level_k)
 
         colA, colB = st.columns([6, 6])
         with colA:
@@ -40,7 +43,7 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
         with colB:
             st.plotly_chart(plot_opportunity_ranking_bar(scores_df, top_n=12), use_container_width=True)
 
-        st.markdown("### 📊 Opportunity Scoring Component Breakdown")
+        st.markdown("### Opportunity Scoring Component Breakdown")
         st.dataframe(
             scores_df[[
                 "category_name", "opportunity_score", "classification",
@@ -59,7 +62,7 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
             hide_index=True,
         )
 
-        with st.expander("📐 Transparent Scoring Formula & Weighting Schema"):
+        with st.expander("Transparent Scoring Formula & Weighting Schema"):
             st.markdown("""
             **Relative Opportunity Score Formula:**
             $$\\text{Opportunity Score} = 100 \\times \\sum (w_i \\times S_i)$$
@@ -72,36 +75,39 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
             """)
 
     with t2:
-        st.markdown("### 📝 Structured Merchandising Action Cards")
-        recs = oe.generate_recommendations(level=level_k, top_n=6)
+        st.markdown("### Structured Merchandising Action Cards")
+        recs = get_opportunity_recommendations_cached(level=level_k, top_n=6)
 
         for r in recs:
-            status_color = "#2a9d8f" if "Strong" in r["classification"] else ("#457b9d" if "Emerging" in r["classification"] else "#e76f51")
+            status_color = "#059669" if "Strong" in r["classification"] else ("#2563EB" if "Emerging" in r["classification"] else "#DC2626")
             st.markdown(f"""
             <div style="
-                background: #ffffff;
-                border-left: 5px solid {status_color};
-                border-radius: 6px;
+                background: #FFFFFF;
+                border-left: 4px solid {status_color};
+                border-top: 1px solid #E2E8F0;
+                border-right: 1px solid #E2E8F0;
+                border-bottom: 1px solid #E2E8F0;
+                border-radius: 8px;
                 padding: 16px 20px;
                 margin-bottom: 16px;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+                box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
             ">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-size: 1.15rem; font-weight: 700; color: #1a1a2e;">{r['category']}</span>
-                    <span style="background: #f1f3f5; color: {status_color}; font-weight: 700; font-size: 0.85rem; padding: 4px 10px; border-radius: 12px;">
+                    <span style="font-size: 1.15rem; font-weight: 700; color: #0F172A;">{r['category']}</span>
+                    <span style="background: #F1F5F9; color: {status_color}; font-weight: 700; font-size: 0.82rem; padding: 4px 10px; border-radius: 9999px;">
                         {r['classification']} (Score: {r['opportunity_score']:.1f})
                     </span>
                 </div>
-                <div style="font-size: 0.88rem; color: #212529; margin-bottom: 6px;"><b>🔎 OBSERVATION:</b> {r['observation']}</div>
-                <div style="font-size: 0.88rem; color: #495057; margin-bottom: 6px;"><b>📊 EVIDENCE:</b> {r['evidence']}</div>
-                <div style="font-size: 0.88rem; color: #264653; margin-bottom: 6px;"><b>💼 BUSINESS IMPLICATION:</b> {r['business_implication']}</div>
-                <div style="font-size: 0.88rem; color: #2a9d8f; font-weight: 600; margin-bottom: 6px;"><b>🎯 RECOMMENDED ACTION:</b> {r['recommended_action']}</div>
-                <div style="font-size: 0.8rem; color: #868e96; font-style: italic;"><b>⚠️ LIMITATION:</b> {r['limitation']}</div>
+                <div style="font-size: 0.88rem; color: #1E293B; margin-bottom: 6px;"><b>OBSERVATION:</b> {r['observation']}</div>
+                <div style="font-size: 0.88rem; color: #475569; margin-bottom: 6px;"><b>EVIDENCE:</b> {r['evidence']}</div>
+                <div style="font-size: 0.88rem; color: #1E3A8A; margin-bottom: 6px;"><b>BUSINESS IMPLICATION:</b> {r['business_implication']}</div>
+                <div style="font-size: 0.88rem; color: #059669; font-weight: 600; margin-bottom: 6px;"><b>RECOMMENDED ACTION:</b> {r['recommended_action']}</div>
+                <div style="font-size: 0.8rem; color: #64748B; font-style: italic;"><b>LIMITATION:</b> {r['limitation']}</div>
             </div>
             """, unsafe_allow_html=True)
 
     with t3:
-        st.markdown("### 🤖 Guarded AI Decision Insights Assistant")
+        st.markdown("### Guarded AI Decision Insights Assistant")
         st.markdown(
             "Executive Q&A engine grounded exclusively in verified DuckDB SQL calculations. "
             "The AI explains verified metrics and is strictly prohibited from fabricating numbers."
@@ -120,10 +126,15 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
         effective_q = custom_q.strip() if custom_q.strip() else user_q
 
         if st.button("Generate Verified Business Answer", type="primary"):
-            with st.spinner("Executing verified DuckDB calculations..."):
-                ans = assistant.answer_question(effective_q)
+            cur = get_cursor()
+            try:
+                assistant = AIBusinessAssistant(cur)
+                with st.spinner("Executing verified DuckDB calculations..."):
+                    ans = assistant.answer_question(effective_q)
+            finally:
+                cur.close()
 
-            st.markdown(f"#### 💡 Grounded Decision Insight")
+            st.markdown(f"#### Grounded Decision Insight")
             st.success(f"**Key Finding:** {ans['finding']}")
 
             cA, cB = st.columns([6, 6])
@@ -134,5 +145,5 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
                 st.markdown(f"**Recommended Merchandising Action:** {ans['recommended_action']}")
                 st.markdown(f"**Governance & Data Limitation:** *{ans['limitations']}*")
 
-            with st.expander("🔍 View Raw Supporting Verified SQL Data"):
+            with st.expander("View Raw Supporting Verified SQL Data"):
                 st.write(ans["supporting_metrics"])

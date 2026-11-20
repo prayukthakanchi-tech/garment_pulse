@@ -1,0 +1,23 @@
+# Docker ignore rules for GarmentPulse
+.git
+.gitignore
+.pytest_cache
+htmlcov
+.coverage
+*.log
+scratch/
+
+# Ignore raw data to keep image slim
+data/raw/*
+!data/raw/.gitkeep
+database/*.duckdb.wal
+database/*.tmp
+
+# Bytecode & environments
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env

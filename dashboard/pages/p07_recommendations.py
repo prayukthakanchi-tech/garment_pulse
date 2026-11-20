@@ -4,34 +4,29 @@ Personalised product recommendations with model evaluation metrics (MAP@12, Reca
 DO NOT CLAIM RECOMMENDATIONS INCREASE CONVERSION WITHOUT AN EXPERIMENT.
 """
 
+from typing import Optional
 import duckdb
 import streamlit as st
 import pandas as pd
 
-from src.recommendations.hybrid_recommender import HybridRecommender
-from src.recommendations.evaluator import RecommendationEvaluator
+from dashboard.data_service import (
+    get_sample_customers_cached,
+    get_customer_history_cached,
+    get_hybrid_recommendations_cached,
+    get_model_evaluation_cached,
+)
 
 
-def render(conn: duckdb.DuckDBPyConnection) -> None:
-    st.markdown("## 🎯 Personalised Fashion Recommendation Engine")
+def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
+    st.markdown("## Personalised Fashion Recommendation Engine")
     st.markdown(
         "Generate personalised article discovery sets using hybrid ranking: community popularity, design attribute affinities, and collaborative co-purchase graphs."
     )
 
     # Sample active customers with diverse history
-    sample_cust_sql = """
-    SELECT
-        t.customer_id,
-        COUNT(DISTINCT t.article_id) AS distinct_articles,
-        COUNT(*) AS total_purchases
-    FROM transactions t
-    GROUP BY t.customer_id
-    HAVING COUNT(DISTINCT t.article_id) BETWEEN 8 AND 25
-    LIMIT 10
-    """
-    sample_customers = conn.execute(sample_cust_sql).fetchdf()
+    sample_customers = get_sample_customers_cached()
 
-    t1, t2 = st.tabs(["🛍️ Customer Discovery Simulator", "📐 Chronological Model Evaluation"])
+    t1, t2 = st.tabs(["Customer Discovery Simulator", "Chronological Model Evaluation"])
 
     with t1:
         c1, c2 = st.columns([8, 4])
@@ -49,24 +44,9 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
 
         if selected_cust:
             # 1. Customer Closet History
-            hist_sql = """
-            SELECT
-                t.t_dat,
-                a.article_id,
-                a.prod_name,
-                a.department_name,
-                a.garment_group_name,
-                a.colour_group_name,
-                ROUND(t.price, 4) AS price_index
-            FROM transactions t
-            JOIN articles a ON t.article_id = a.article_id
-            WHERE t.customer_id = ?
-            ORDER BY t.t_dat DESC
-            LIMIT 6
-            """
-            hist_df = conn.execute(hist_sql, [selected_cust]).fetchdf()
+            hist_df = get_customer_history_cached(selected_cust, limit=6)
 
-            with st.expander(f"👗 Customer Past Purchases ({len(hist_df)} most recent items)", expanded=False):
+            with st.expander(f"Customer Past Purchases ({len(hist_df)} most recent items)", expanded=False):
                 st.dataframe(
                     hist_df.rename(columns={
                         "t_dat": "Date",
@@ -82,10 +62,9 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
                 )
 
             # 2. Generate Recommendations
-            st.markdown("### ✨ Top 12 Recommended Articles for Customer")
+            st.markdown("### Top 12 Recommended Articles for Customer")
             with st.spinner("Generating hybrid recommendations..."):
-                recommender = HybridRecommender(conn)
-                recs = recommender.recommend(selected_cust, n=12, exclude_purchased=True)
+                recs = get_hybrid_recommendations_cached(selected_cust, n=12)
 
             if recs:
                 # Render 3 columns of recommendation cards
@@ -94,27 +73,27 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
                     with cols[i % 3]:
                         st.markdown(f"""
                         <div style="
-                            background: #ffffff;
-                            border: 1px solid #dee2e6;
-                            border-radius: 8px;
-                            padding: 14px;
-                            margin-bottom: 12px;
-                            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+                            background: #FFFFFF;
+                            border: 1px solid #E2E8F0;
+                            border-radius: 10px;
+                            padding: 16px;
+                            margin-bottom: 14px;
+                            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
                         ">
-                            <div style="font-size: 0.75rem; font-weight: 700; color: #e76f51; text-transform: uppercase;">
+                            <div style="font-size: 0.72rem; font-weight: 700; color: #2563EB; text-transform: uppercase; letter-spacing: 0.05em;">
                                 {r['department_name']}
                             </div>
-                            <div style="font-size: 1.05rem; font-weight: 700; color: #1a1a2e; margin: 4px 0;">
+                            <div style="font-size: 1.05rem; font-weight: 700; color: #0F172A; margin: 4px 0;">
                                 {r['prod_name']}
                             </div>
-                            <div style="font-size: 0.8rem; color: #6c757d; margin-bottom: 6px;">
+                            <div style="font-size: 0.8rem; color: #64748B; margin-bottom: 6px;">
                                 SKU: <code>{r['article_id']}</code> | Colour: <b>{r['colour_group_name']}</b>
                             </div>
-                            <div style="font-size: 0.8rem; font-weight: 600; color: #2a9d8f; margin-bottom: 6px;">
-                                Affinity Score: {r['hybrid_score']:.3f}
+                            <div style="font-size: 0.82rem; font-weight: 700; color: #059669; margin-bottom: 8px;">
+                                Hybrid Affinity Score: {r['hybrid_score']:.3f}
                             </div>
-                            <div style="font-size: 0.75rem; color: #495057; background: #f8f9fa; padding: 6px 8px; border-radius: 4px;">
-                                💡 {r['reason']}
+                            <div style="font-size: 0.76rem; color: #334155; background: #F8FAFC; border: 1px solid #F1F5F9; padding: 6px 10px; border-radius: 6px;">
+                                {r['reason']}
                             </div>
                         </div>
                         """, unsafe_allow_html=True)
@@ -122,18 +101,21 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
                 st.info("No recommendations found for this customer.")
 
     with t2:
-        st.markdown("### 📊 Chronological Validation Benchmark (MAP@12 vs Popularity Baseline)")
+        st.markdown("### Chronological Validation Benchmark (MAP@12 vs Popularity Baseline)")
         st.markdown(
             "Evaluation protocol: Strict holdout split. Models are trained on data *before* the cutoff date and evaluated on ground-truth customer purchases *after* the cutoff date. No random train-test splitting."
         )
 
-        with st.spinner("Running chronological evaluation across 40 test holdout customers..."):
-            evaluator = RecommendationEvaluator(conn)
-            comparison_df = evaluator.compare_all_models(sample_customers=40)
+        # Baseline pre-calculated or cached holdout benchmark
+        run_live = st.button("Run Live Holdout Benchmark Evaluation (20 Holdout Customers)")
+        sample_size = 20 if run_live else 10
+
+        with st.spinner("Computing chronological holdout evaluation..."):
+            comparison_df = get_model_evaluation_cached(sample_size=sample_size)
 
         st.dataframe(comparison_df, use_container_width=True, hide_index=True)
 
         st.warning(
-            "⚠️ **Causal Evaluation Disclaimer:** Offline metrics (MAP@12, Recall@12) demonstrate algorithmic ranking efficacy on historical data. "
+            "**Causal Evaluation Disclaimer:** Offline metrics (MAP@12, Recall@12) demonstrate algorithmic ranking efficacy on historical data. "
             "They do NOT prove that displaying these recommendations would increase incremental retail conversion without an active A/B randomized experiment."
         )

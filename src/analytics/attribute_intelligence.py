@@ -10,6 +10,14 @@ import duckdb
 import pandas as pd
 
 
+def _is_prod_db(conn: duckdb.DuckDBPyConnection) -> bool:
+    try:
+        db_list = conn.execute("PRAGMA database_list;").fetchall()
+        return any(row[2] and "garmentpulse.duckdb" in str(row[2]).lower() for row in db_list)
+    except Exception:
+        return False
+
+
 class AttributeIntelligence:
     """Engine for fashion design attribute analytics (colours, garment groups, styles)."""
 
@@ -23,6 +31,16 @@ class AttributeIntelligence:
         min_transactions: int = 500,
     ) -> pd.DataFrame:
         """Colour group performance ranking by volume, customers, and price index."""
+        import os
+        col_file = "data/processed/agg_colour_performance.parquet"
+        if _is_prod_db(self.conn) and not date_from and not date_to and os.path.exists(col_file):
+            sql = f"""
+            SELECT * FROM read_parquet('{col_file}')
+            WHERE purchase_volume >= {min_transactions}
+            ORDER BY purchase_volume DESC
+            """
+            return self.conn.execute(sql).fetchdf()
+
         where_clauses = ["t.article_id = a.article_id"]
         if date_from:
             where_clauses.append(f"t.t_dat >= '{date_from}'")
@@ -48,6 +66,16 @@ class AttributeIntelligence:
 
     def get_garment_group_trends(self, freq: str = "month") -> pd.DataFrame:
         """Garment group purchase volume trends over time."""
+        import os
+        gar_file = "data/processed/agg_garment_monthly.parquet"
+        if _is_prod_db(self.conn) and freq == "month" and os.path.exists(gar_file):
+            sql = f"""
+            SELECT period_date, garment_group_name, purchase_volume
+            FROM read_parquet('{gar_file}')
+            ORDER BY period_date ASC, purchase_volume DESC
+            """
+            return self.conn.execute(sql).fetchdf()
+
         trunc = "month" if freq == "month" else "week"
         sql = f"""
         SELECT
@@ -109,6 +137,22 @@ class AttributeIntelligence:
 
     def get_colour_garment_combinations(self, top_n: int = 25) -> pd.DataFrame:
         """Most frequent colour and garment group pairings in actual purchasing."""
+        import os
+        comb_file = "data/processed/agg_colour_garment.parquet"
+        if _is_prod_db(self.conn) and os.path.exists(comb_file):
+            sql = f"""
+            SELECT
+                colour_group_name,
+                garment_group_name,
+                purchase_volume,
+                unique_customers,
+                avg_price_index AS avg_normalised_price
+            FROM read_parquet('{comb_file}')
+            ORDER BY purchase_volume DESC
+            LIMIT {top_n}
+            """
+            return self.conn.execute(sql).fetchdf()
+
         sql = f"""
         SELECT
             a.colour_group_name,
@@ -131,6 +175,26 @@ class AttributeIntelligence:
         top_attrs: int = 12,
     ) -> pd.DataFrame:
         """Cross-tabulation of top departments vs top attributes for heatmap rendering."""
+        import os
+        heat_file = "data/processed/agg_dept_colour.parquet"
+        if _is_prod_db(self.conn) and attribute == "colour_group_name" and os.path.exists(heat_file):
+            sql = f"""
+            WITH top_d AS (
+                SELECT department_name FROM read_parquet('{heat_file}')
+                GROUP BY department_name ORDER BY SUM(purchase_volume) DESC LIMIT {top_depts}
+            ),
+            top_a AS (
+                SELECT attribute_value FROM read_parquet('{heat_file}')
+                GROUP BY attribute_value ORDER BY SUM(purchase_volume) DESC LIMIT {top_attrs}
+            )
+            SELECT department_name, attribute_value, purchase_volume
+            FROM read_parquet('{heat_file}')
+            WHERE department_name IN (SELECT department_name FROM top_d)
+              AND attribute_value IN (SELECT attribute_value FROM top_a)
+            ORDER BY department_name, purchase_volume DESC
+            """
+            return self.conn.execute(sql).fetchdf()
+
         sql = f"""
         WITH top_d AS (
             SELECT department_name FROM articles a

@@ -122,8 +122,8 @@ AI_INSIGHTS_ENABLED = bool(GEMINI_API_KEY)
 # ─────────────────────────────────────────────
 DASHBOARD_TITLE = "GarmentPulse"
 DASHBOARD_SUBTITLE = "Fashion Category & Customer Decision Intelligence"
-DASHBOARD_ICON = "👗"
-PAGE_ICON = "📊"
+DASHBOARD_ICON = "GP"
+PAGE_ICON = "GP"
 
 # Color palette - Fashion editorial style
 COLORS = {

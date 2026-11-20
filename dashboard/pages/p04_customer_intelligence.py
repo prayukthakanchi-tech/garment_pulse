@@ -3,6 +3,7 @@ GarmentPulse Dashboard — Page 4: Customer Intelligence (Module C)
 RFM segmentation, repeat purchase distribution, and monthly cohort retention matrices.
 """
 
+from typing import Optional
 import duckdb
 import streamlit as st
 import pandas as pd
@@ -13,21 +14,26 @@ from dashboard.visualisations.customer_charts import (
     plot_cohort_heatmap,
     plot_new_vs_returning_area,
 )
-from src.segmentation.customer_intelligence import CustomerIntelligence
-from src.segmentation.cohort_analysis import CohortAnalysis
+from dashboard.data_service import (
+    get_customer_overview_cached,
+    get_customer_segments_cached,
+    get_cohort_retention_matrix_cached,
+    get_cohort_summary_cached,
+    get_customer_activity_trends_cached,
+    get_repeat_purchase_distribution_cached,
+)
 
 
-def render(conn: duckdb.DuckDBPyConnection) -> None:
-    st.markdown("## 👥 Customer Lifecycle & Cohort Intelligence")
+def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
+    st.markdown("## Customer Lifecycle & Cohort Intelligence")
     st.markdown(
         "Evaluate measurable customer segmentation tiers, repeat purchase activity, and historical monthly cohort progression."
     )
 
-    ci = CustomerIntelligence(conn)
-    ca = CohortAnalysis(conn)
-
     # 1. Customer Overview KPI Row
-    overview = ci.get_customer_overview()
+    with st.spinner("Loading customer metrics..."):
+        overview = get_customer_overview_cached()
+
     render_kpi_row([
         {
             "label": "Total Purchasing Base",
@@ -53,17 +59,17 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
 
     st.markdown("---")
 
-    t1, t2, t3 = st.tabs(["🎯 Lifecycle Segmentation", "📅 Cohort Repeat Matrix", "🔄 Repeat Purchase Dynamics"])
+    t1, t2, t3 = st.tabs(["Lifecycle Segmentation", "Cohort Repeat Matrix", "Repeat Purchase Dynamics"])
 
     with t1:
-        seg_df = ci.get_customer_segments()
+        seg_df = get_customer_segments_cached()
         col1, col2 = st.columns([5, 7])
 
         with col1:
             st.plotly_chart(plot_segment_donut(seg_df), use_container_width=True)
 
         with col2:
-            st.markdown("### 📊 Segment Characteristic Profiles")
+            st.markdown("### Segment Characteristic Profiles")
             st.dataframe(
                 seg_df.rename(columns={
                     "segment": "Segment Tier",
@@ -84,27 +90,27 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
         )
 
     with t2:
-        st.markdown("### 🧱 Monthly Cohort Retention & Repeat Activity Heatmap")
+        st.markdown("### Monthly Cohort Retention & Repeat Activity Heatmap")
         st.markdown(
             "*Note: This measures repeat purchase transaction activity across successive calendar months. "
             "Because website visit sessions are not tracked, this does NOT measure platform browsing retention.*"
         )
-        cohort_matrix = ca.get_cohort_retention_matrix(max_period=12)
+        cohort_matrix = get_cohort_retention_matrix_cached(max_period=12)
         st.plotly_chart(plot_cohort_heatmap(cohort_matrix), use_container_width=True)
 
-        with st.expander("🔍 View Tabular Cohort Summary Table"):
-            st.dataframe(ca.get_cohort_summary(), use_container_width=True, hide_index=True)
+        with st.expander("View Tabular Cohort Summary Table"):
+            st.dataframe(get_cohort_summary_cached(), use_container_width=True, hide_index=True)
 
     with t3:
         colA, colB = st.columns([6, 6])
         with colA:
-            st.markdown("### 📈 Customer Composition: New vs Returning")
-            trends_df = ci.get_customer_activity_trends(freq="month")
+            st.markdown("### Customer Composition: New vs Returning")
+            trends_df = get_customer_activity_trends_cached(freq="month")
             st.plotly_chart(plot_new_vs_returning_area(trends_df), use_container_width=True)
 
         with colB:
-            st.markdown("### 🔁 Purchase Frequency Tier Breakdown")
-            freq_df = ci.get_repeat_purchase_distribution()
+            st.markdown("### Purchase Frequency Tier Breakdown")
+            freq_df = get_repeat_purchase_distribution_cached()
             st.dataframe(
                 freq_df.rename(columns={
                     "frequency_tier": "Purchase Frequency Tier",

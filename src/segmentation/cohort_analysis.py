@@ -11,6 +11,14 @@ import duckdb
 import pandas as pd
 
 
+def _is_prod_db(conn: duckdb.DuckDBPyConnection) -> bool:
+    try:
+        db_list = conn.execute("PRAGMA database_list;").fetchall()
+        return any(row[2] and "garmentpulse.duckdb" in str(row[2]).lower() for row in db_list)
+    except Exception:
+        return False
+
+
 class CohortAnalysis:
     """Analyzes customer acquisition cohorts and subsequent purchasing repeat activity."""
 
@@ -19,6 +27,17 @@ class CohortAnalysis:
 
     def get_monthly_cohort_data(self, max_period: int = 12) -> pd.DataFrame:
         """Computes cohort month, period number (months since acquisition), and repeat activity rate."""
+        import os
+        coh_file = "data/processed/agg_cohort_retention.parquet"
+        if _is_prod_db(self.conn) and os.path.exists(coh_file):
+            sql = f"""
+            SELECT cohort_month, cohort_size, period_number, active_customers, repeat_activity_rate_pct
+            FROM read_parquet('{coh_file}')
+            WHERE period_number <= {max_period}
+            ORDER BY cohort_month, period_number
+            """
+            return self.conn.execute(sql).fetchdf()
+
         sql = f"""
         WITH customer_first_purchase AS (
             SELECT

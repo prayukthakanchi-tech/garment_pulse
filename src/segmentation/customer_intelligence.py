@@ -19,6 +19,14 @@ from config.settings import (
 )
 
 
+def _is_prod_db(conn: duckdb.DuckDBPyConnection) -> bool:
+    try:
+        db_list = conn.execute("PRAGMA database_list;").fetchall()
+        return any(row[2] and "garmentpulse.duckdb" in str(row[2]).lower() for row in db_list)
+    except Exception:
+        return False
+
+
 class CustomerIntelligence:
     """Computes customer activity, RFM-inspired dimensions, and lifecycle segments."""
 
@@ -27,6 +35,11 @@ class CustomerIntelligence:
 
     def get_customer_overview(self) -> Dict[str, Any]:
         """High-level customer base statistics."""
+        import os
+        ov_file = "data/processed/agg_customer_overview.parquet"
+        if _is_prod_db(self.conn) and os.path.exists(ov_file):
+            return self.conn.execute(f"SELECT * FROM read_parquet('{ov_file}')").fetchdf().to_dict(orient="records")[0]
+
         sql = """
         WITH bounds AS (SELECT MAX(t_dat) AS max_date FROM transactions),
         cust_summary AS (
@@ -55,6 +68,11 @@ class CustomerIntelligence:
 
     def get_customer_segments(self) -> pd.DataFrame:
         """Categorizes all active purchasing customers into measurable segments."""
+        import os
+        seg_file = "data/processed/agg_customer_segments.parquet"
+        if _is_prod_db(self.conn) and os.path.exists(seg_file):
+            return self.conn.execute(f"SELECT * FROM read_parquet('{seg_file}') ORDER BY customer_count DESC").fetchdf()
+
         sql = f"""
         WITH bounds AS (SELECT MAX(t_dat) AS max_date FROM transactions),
         cust_rfm AS (

@@ -3,6 +3,7 @@ GarmentPulse Dashboard — Page 6: Sales Channel Analytics (Module E)
 Objective comparison of Channel 1 and Channel 2 without unverified channel labels.
 """
 
+from typing import Optional
 import duckdb
 import streamlit as st
 import plotly.express as px
@@ -10,20 +11,25 @@ import plotly.graph_objects as go
 import pandas as pd
 
 from dashboard.components.metrics import render_kpi_row
-from dashboard.components.charts import apply_chart_style
-from src.analytics.channel_intelligence import ChannelIntelligence
+from dashboard.components.charts import apply_chart_style, CHART_THEME
+from dashboard.data_service import (
+    get_channel_overview_cached,
+    get_channel_trends_cached,
+    get_channel_customer_overlap_cached,
+    get_channel_department_contribution_cached,
+)
 
 
-def render(conn: duckdb.DuckDBPyConnection) -> None:
-    st.markdown("## 📡 Sales Channel Distribution Intelligence")
+def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
+    st.markdown("## Sales Channel Distribution Intelligence")
     st.markdown(
         "Evaluate purchasing behaviors, basket sizes, and category preferences across Sales Channel 1 and Sales Channel 2."
     )
 
-    chi = ChannelIntelligence(conn)
-
     # 1. Macro Channel Metrics
-    ch_df = chi.get_channel_overview()
+    with st.spinner("Loading sales channel statistics..."):
+        ch_df = get_channel_overview_cached()
+
     c1_row = ch_df[ch_df["sales_channel_id"] == 1].iloc[0]
     c2_row = ch_df[ch_df["sales_channel_id"] == 2].iloc[0]
 
@@ -57,15 +63,15 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
     colA, colB = st.columns([6, 6])
 
     with colA:
-        st.markdown("### 📈 Monthly Volume Trends by Sales Channel")
-        trends_df = chi.get_channel_trends(freq="month")
+        st.markdown("### Monthly Volume Trends by Sales Channel")
+        trends_df = get_channel_trends_cached(freq="month")
         fig_t = px.line(
             trends_df,
             x="period_date",
             y="purchase_volume",
             color="channel_label",
             markers=True,
-            color_discrete_map={"Channel 1": "#457b9d", "Channel 2": "#264653"},
+            color_discrete_map={"Channel 1": "#1E3A8A", "Channel 2": "#0D9488"},
         )
         fig_t = apply_chart_style(
             fig_t,
@@ -77,15 +83,15 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
         st.plotly_chart(fig_t, use_container_width=True)
 
     with colB:
-        st.markdown("### 👥 Cross-Channel Customer Overlap")
-        overlap = chi.get_channel_customer_overlap()
+        st.markdown("### Cross-Channel Customer Overlap")
+        overlap = get_channel_customer_overlap_cached()
 
         overlap_fig = go.Figure(
             go.Pie(
                 labels=["Channel 1 Exclusively", "Channel 2 Exclusively", "Both Channels (Omnichannel)"],
                 values=[overlap["channel_1_only"], overlap["channel_2_only"], overlap["both_channels"]],
-                hole=0.5,
-                marker=dict(colors=["#457b9d", "#264653", "#2a9d8f"]),
+                hole=0.55,
+                marker=dict(colors=["#1E3A8A", "#0D9488", "#2563EB"]),
                 textinfo="label+percent",
             )
         )
@@ -98,27 +104,27 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
         st.plotly_chart(overlap_fig, use_container_width=True)
 
     # Department level contribution
-    st.markdown("### 🏷️ Department Contribution per Sales Channel")
-    dept_ch_df = chi.get_channel_department_contribution(top_n=12)
+    st.markdown("### Top Department Distribution by Channel")
+    dept_contrib = get_channel_department_contribution_cached(top_n=12)
 
-    fig_dept = px.bar(
-        dept_ch_df,
+    fig_d = px.bar(
+        dept_contrib,
         x="department_name",
-        y="dept_share_within_channel_pct",
+        y="channel_volume",
         color="channel_label",
         barmode="group",
-        color_discrete_map={"Channel 1": "#457b9d", "Channel 2": "#264653"},
+        color_discrete_map={"Channel 1": "#1E3A8A", "Channel 2": "#0D9488"},
+        title="Department Volume Comparison Across Channels",
     )
-    fig_dept = apply_chart_style(
-        fig_dept,
-        title="Top 12 Departments: Category Mix Share within Each Channel (%)",
+    fig_d = apply_chart_style(
+        fig_d,
         x_title="Department",
-        y_title="Share within Channel (%)",
+        y_title="Purchase Lines",
         height=450,
     )
-    st.plotly_chart(fig_dept, use_container_width=True)
+    st.plotly_chart(fig_d, use_container_width=True)
 
     st.info(
-        "💡 **Data Integrity Mandate:** As per Project Omega specifications, sales channels are neutrally reported as Channel 1 and Channel 2. "
-        "Neither channel is arbitrarily labeled as 'online' or 'store' without official authoritative mapping documentation."
+        "**Data Governance Note:** The Kaggle dataset metadata documents only numeric codes (1 and 2) without specifying which represents physical stores vs online e-commerce. "
+        "To uphold integrity, they are analyzed objectively without assuming either channel is digital or brick-and-mortar."
     )

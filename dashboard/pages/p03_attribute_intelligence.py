@@ -3,44 +3,50 @@ GarmentPulse Dashboard — Page 3: Fashion Attribute Intelligence (Module B)
 Analyzes design attributes including colours, graphical appearances, and garment groupings.
 """
 
+from typing import Optional
 import duckdb
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 
-from dashboard.components.charts import apply_chart_style
-from src.analytics.attribute_intelligence import AttributeIntelligence
+from dashboard.components.charts import apply_chart_style, CHART_THEME
+from dashboard.data_service import (
+    get_colour_performance_cached,
+    get_garment_group_trends_cached,
+    get_attribute_growth_rankings_cached,
+    get_department_attribute_heatmap_cached,
+    get_colour_garment_combinations_cached,
+)
 
 
-def render(conn: duckdb.DuckDBPyConnection) -> None:
-    st.markdown("## 🎨 Fashion Attribute & Design Intelligence")
+def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
+    st.markdown("## Fashion Attribute & Design Intelligence")
     st.markdown(
         "Investigate how physical garment attributes (colour palette, garment type, graphical patterns) influence consumer purchasing patterns."
     )
 
-    ai = AttributeIntelligence(conn)
-
-    t1, t2, t3 = st.tabs(["🌈 Colour Palette Performance", "👗 Garment Group Velocity", "🧩 Cross-Attribute Heatmap"])
+    t1, t2, t3 = st.tabs(["Colour Palette Performance", "Garment Group Velocity", "Cross-Attribute Heatmap"])
 
     with t1:
-        colA, colB = st.columns([6, 6])
-        colour_df = ai.get_colour_performance(min_transactions=1000)
+        with st.spinner("Loading colour palette analytics..."):
+            colour_df = get_colour_performance_cached(min_transactions=1000)
 
+        colA, colB = st.columns([6, 6])
         with colA:
             top_colours = colour_df.head(12)
             fig = px.bar(
                 top_colours,
                 x="colour_group_name",
                 y="purchase_volume",
-                color="colour_group_name",
+                color_discrete_sequence=[CHART_THEME["primary_accent"]],
                 title="Top 12 Fashion Colour Groups by Purchase Volume",
             )
             fig = apply_chart_style(fig, x_title="Colour Group", y_title="Purchase Volume", height=420, show_legend=False)
             st.plotly_chart(fig, use_container_width=True)
 
         with colB:
-            st.markdown("### 📋 Colour Palette Demand Metrics")
+            st.markdown("### Colour Palette Demand Metrics")
             st.dataframe(
                 colour_df.head(15)[[
                     "colour_group_name", "purchase_volume", "unique_customers",
@@ -58,9 +64,9 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
             )
 
     with t2:
-        st.markdown("### 📈 Garment Group Demand Over Time")
-        trend_df = ai.get_garment_group_trends(freq="month")
-        # Keep top 8 garment groups
+        st.markdown("### Garment Group Demand Over Time")
+        with st.spinner("Aggregating garment group trajectories..."):
+            trend_df = get_garment_group_trends_cached(freq="month")
         top_garments = trend_df.groupby("garment_group_name")["purchase_volume"].sum().nlargest(8).index
         filtered_trends = trend_df[trend_df["garment_group_name"].isin(top_garments)]
 
@@ -70,6 +76,7 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
             y="purchase_volume",
             color="garment_group_name",
             markers=True,
+            color_discrete_sequence=CHART_THEME["palette"],
         )
         fig_g = apply_chart_style(
             fig_g,
@@ -80,9 +87,9 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
         )
         st.plotly_chart(fig_g, use_container_width=True)
 
-        # Attribute growth ranking
-        st.markdown("#### ⚡ Fastest Growing Colours (Recent 4 Wks)")
-        growth_colours = ai.get_attribute_growth_rankings(attribute="colour_group_name", min_volume=1000)
+        st.markdown("#### Fastest Growing Colours (Recent 4 Wks)")
+        with st.spinner("Computing colour growth velocity..."):
+            growth_colours = get_attribute_growth_rankings_cached(attribute="colour_group_name", min_volume=1000)
         st.dataframe(
             growth_colours.head(10).rename(columns={
                 "attribute_value": "Colour",
@@ -95,8 +102,9 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
         )
 
     with t3:
-        st.markdown("### 🗺️ Department vs Colour Group Cross-Tabulation")
-        heat_df = ai.get_department_attribute_heatmap(attribute="colour_group_name", top_depts=10, top_attrs=10)
+        st.markdown("### Department vs Colour Group Cross-Tabulation")
+        with st.spinner("Building cross-attribute matrix..."):
+            heat_df = get_department_attribute_heatmap_cached(attribute="colour_group_name", top_depts=10, top_attrs=10)
 
         if not heat_df.empty:
             pivot_heat = heat_df.pivot(index="department_name", columns="attribute_value", values="purchase_volume").fillna(0)
@@ -119,8 +127,9 @@ def render(conn: duckdb.DuckDBPyConnection) -> None:
             )
             st.plotly_chart(fig_h, use_container_width=True)
 
-        st.markdown("#### 🔗 Common Colour & Garment Group Pairings")
-        comb_df = ai.get_colour_garment_combinations(top_n=15)
+        st.markdown("#### Common Colour & Garment Group Pairings")
+        with st.spinner("Loading co-occurrence pairings..."):
+            comb_df = get_colour_garment_combinations_cached(top_n=15)
         st.dataframe(
             comb_df.rename(columns={
                 "colour_group_name": "Colour Group",

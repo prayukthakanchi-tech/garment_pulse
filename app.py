@@ -4,7 +4,6 @@ Main Streamlit Application Entrypoint
 """
 
 from pathlib import Path
-import duckdb
 import streamlit as st
 
 from config.settings import (
@@ -15,7 +14,7 @@ from config.settings import (
     DATA_LIMITATIONS,
     DUCKDB_PATH,
 )
-from src.ingestion.db_loader import get_connection
+from src.database.connection import get_db_connection
 
 # ─────────────────────────────────────────────
 # Streamlit Page Configuration
@@ -28,65 +27,160 @@ st.set_page_config(
 )
 
 # ─────────────────────────────────────────────
-# Custom CSS — Clean Editorial Fashion Aesthetic
+# Custom CSS — Premium Enterprise Fashion-Tech Aesthetic
 # ─────────────────────────────────────────────
 st.markdown("""
 <style>
-    /* Clean editorial typography */
+    /* Google Fonts typography import */
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
     html, body, [class*="css"] {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        color: #0F172A;
     }
     
-    /* Subtle main background */
+    /* Warm ivory / neutral background */
     .stApp {
-        background-color: #f8f9fa;
+        background-color: #FAF9F6;
+    }
+
+    /* Main container max width and padding */
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 3rem;
+        padding-left: 3rem;
+        padding-right: 3rem;
     }
     
-    /* Sidebar branding */
+    /* Sidebar styling */
+    [data-testid="stSidebar"] {
+        background-color: #0F172A;
+        border-right: 1px solid #1E293B;
+    }
+
+    [data-testid="stSidebar"] [class*="css"], [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label {
+        color: #E2E8F0 !important;
+    }
+
     .sidebar-header {
-        padding: 10px 0 20px 0;
-        border-bottom: 1px solid #e9ecef;
+        padding: 12px 4px 20px 4px;
+        border-bottom: 1px solid #1E293B;
         margin-bottom: 20px;
     }
     
     .brand-title {
         font-size: 1.5rem;
         font-weight: 800;
-        letter-spacing: -0.5px;
-        color: #1a1a2e;
+        letter-spacing: -0.03em;
+        color: #FFFFFF !important;
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
     
     .brand-tagline {
-        font-size: 0.8rem;
-        color: #6c757d;
-        margin-top: 2px;
+        font-size: 0.78rem;
+        font-weight: 500;
+        color: #94A3B8 !important;
+        margin-top: 4px;
+        line-height: 1.3;
+    }
+
+    .sidebar-nav-title {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #64748B !important;
+        margin-bottom: 8px;
+        padding-left: 2px;
     }
     
     /* Tabs & cards styling */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
+        gap: 6px;
+        border-bottom: 1px solid #E2E8F0;
+        background-color: transparent;
+        padding-bottom: 4px;
     }
+
     .stTabs [data-baseweb="tab"] {
-        padding: 8px 16px;
-        border-radius: 4px;
+        padding: 10px 18px;
+        border-radius: 8px;
         font-weight: 600;
+        font-size: 0.88rem;
+        color: #475569;
+        background-color: transparent;
+        border: none;
+        transition: all 0.15s ease-in-out;
+    }
+
+    .stTabs [aria-selected="true"] {
+        background-color: #FFFFFF !important;
+        color: #2563EB !important;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+        border: 1px solid #E2E8F0;
     }
     
-    /* Metric styling */
+    /* Metric styling override */
     div[data-testid="stMetricValue"] {
-        font-size: 1.7rem;
+        font-size: 1.85rem;
+        font-weight: 800;
+        color: #0F172A;
+        letter-spacing: -0.02em;
+    }
+
+    div[data-testid="stMetricLabel"] {
+        font-size: 0.75rem;
         font-weight: 700;
-        color: #1a1a2e;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #64748B;
     }
     
+    /* DataFrame containers */
+    [data-testid="stDataFrame"] {
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        background: #FFFFFF;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+    }
+
+    /* Headings hierarchy */
+    h1, h2, h3 {
+        color: #0F172A;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+    }
+
+    h2 {
+        font-size: 1.65rem;
+        margin-bottom: 0.3rem;
+    }
+
+    h3 {
+        font-size: 1.25rem;
+        margin-top: 1.2rem;
+        margin-bottom: 0.6rem;
+    }
+
+    /* Custom expander */
+    .streamlit-expanderHeader {
+        font-weight: 600;
+        color: #1E293B;
+        background-color: #FFFFFF;
+        border-radius: 6px;
+    }
+
     /* Limitation alert badge */
     .limitation-badge {
-        background-color: #fff3cd;
-        border: 1px solid #ffeeba;
-        color: #856404;
-        padding: 8px 12px;
-        border-radius: 6px;
-        font-size: 0.8rem;
+        background-color: #FEF3C7;
+        border: 1px solid #FDE68A;
+        color: #92400E;
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-size: 0.82rem;
+        line-height: 1.4;
         margin-top: 15px;
     }
 </style>
@@ -94,31 +188,24 @@ st.markdown("""
 
 
 # ─────────────────────────────────────────────
-# Database Connection
+# Database Connection Check
 # ─────────────────────────────────────────────
-@st.cache_resource
-def load_db():
-    if not DUCKDB_PATH.exists():
-        return None
-    # Read-only connection for responsive multi-threaded querying
-    return duckdb.connect(str(DUCKDB_PATH), read_only=True)
+if not DUCKDB_PATH.exists():
+    st.error(f"Analytical database not found at `{DUCKDB_PATH}`. Please run data ingestion first.")
+    st.stop()
 
-
-conn = load_db()
+# Obtain thread-local connection
+conn = get_db_connection()
 
 # ─────────────────────────────────────────────
 # Sidebar Navigation
 # ─────────────────────────────────────────────
 st.sidebar.markdown(f"""
 <div class="sidebar-header">
-    <div class="brand-title">{DASHBOARD_ICON} {DASHBOARD_TITLE}</div>
+    <div class="brand-title">{DASHBOARD_TITLE}</div>
     <div class="brand-tagline">{DASHBOARD_SUBTITLE}</div>
 </div>
 """, unsafe_allow_html=True)
-
-if conn is None:
-    st.error(f"⚠️ Analytical database not found at `{DUCKDB_PATH}`. Please run data ingestion first.")
-    st.stop()
 
 pages = {
     "1. Executive Overview": "p01",
@@ -133,20 +220,22 @@ pages = {
     "10. Data Quality & Governance": "p10",
 }
 
+st.sidebar.markdown('<div class="sidebar-nav-title">Intelligence Modules</div>', unsafe_allow_html=True)
 selected_page_name = st.sidebar.radio(
     "Navigation Menu",
     options=list(pages.keys()),
     index=0,
+    label_visibility="collapsed",
 )
 
 # Sidebar metadata & limitation notices
-st.sidebar.markdown("---")
-with st.sidebar.expander("ℹ️ Data Governance Boundaries", expanded=False):
+st.sidebar.markdown("<br>", unsafe_allow_html=True)
+with st.sidebar.expander("Data Governance Guardrails", expanded=False):
     st.markdown("""
-    - Price is a **dimensionless normalised index**, not actual currency.
-    - No order IDs exist; checkout baskets are grouped by customer/date.
-    - No stockout or inventory records exist.
-    - Independent academic portfolio project.
+    - **Price Index:** Dimensionless normalised index, not actual currency.
+    - **Order IDs:** Not present; baskets grouped by customer & date.
+    - **Inventory:** Zero stockout/inventory records available.
+    - **Scope:** Independent academic portfolio project.
     """)
 
 # ─────────────────────────────────────────────

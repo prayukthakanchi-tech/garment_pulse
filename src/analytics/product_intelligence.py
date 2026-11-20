@@ -17,6 +17,14 @@ from config.settings import (
 )
 
 
+def _is_prod_db(conn: duckdb.DuckDBPyConnection) -> bool:
+    try:
+        db_list = conn.execute("PRAGMA database_list;").fetchall()
+        return any(row[2] and "garmentpulse.duckdb" in str(row[2]).lower() for row in db_list)
+    except Exception:
+        return False
+
+
 class ProductIntelligence:
     """Evaluates individual article sales velocity, lifecycle status, and demand trajectories."""
 
@@ -35,6 +43,44 @@ class ProductIntelligence:
         lifecycle_filter: Optional[str] = None,
     ) -> pd.DataFrame:
         """Paginated, searchable article-level performance table."""
+        import os
+        parquet_file = "data/processed/agg_article_performance.parquet"
+        if _is_prod_db(self.conn) and os.path.exists(parquet_file):
+            where_clauses = ["1=1"]
+            params = []
+            if department:
+                where_clauses.append("department_name = ?")
+                params.append(department)
+            if product_group:
+                where_clauses.append("garment_group_name = ?")
+                params.append(product_group)
+            if search:
+                where_clauses.append("(LOWER(prod_name) LIKE ? OR article_id LIKE ?)")
+                params.extend([f"%{search.lower()}%", f"%{search}%"])
+            if lifecycle_filter and lifecycle_filter != "All":
+                where_clauses.append("lifecycle_status = ?")
+                params.append(lifecycle_filter)
+
+            where_sql = " AND ".join(where_clauses)
+            sort_dir = "ASC" if ascending else "DESC"
+            allowed_sorts = {
+                "purchase_volume": "total_purchase_lines",
+                "unique_customers": "unique_customers",
+                "recent_volume": "recent_4wk_volume",
+                "growth_rate": "volume_growth_rate",
+                "avg_price": "avg_price_index",
+            }
+            order_col = allowed_sorts.get(sort_by, "total_purchase_lines")
+
+            sql = f"""
+            SELECT *
+            FROM read_parquet('{parquet_file}')
+            WHERE {where_sql}
+            ORDER BY {order_col} {sort_dir} NULLS LAST
+            LIMIT {limit} OFFSET {offset}
+            """
+            return self.conn.execute(sql, params).fetchdf()
+
         where_clauses = ["1=1"]
         params = []
 
@@ -131,6 +177,20 @@ class ProductIntelligence:
 
     def get_product_classifications(self) -> pd.DataFrame:
         """Returns distribution counts across lifecycle categories."""
+        import os
+        parquet_file = "data/processed/agg_article_performance.parquet"
+        if _is_prod_db(self.conn) and os.path.exists(parquet_file):
+            sql = f"""
+            SELECT
+                lifecycle_status,
+                COUNT(*) AS article_count,
+                ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (), 2) AS share_pct
+            FROM read_parquet('{parquet_file}')
+            GROUP BY lifecycle_status
+            ORDER BY article_count DESC
+            """
+            return self.conn.execute(sql).fetchdf()
+
         sql = f"""
         WITH bounds AS (SELECT MAX(t_dat) AS max_date FROM transactions),
         periods AS (
