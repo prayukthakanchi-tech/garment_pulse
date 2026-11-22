@@ -87,32 +87,16 @@ def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
                 cols = st.columns(3)
                 for i, r in enumerate(recs):
                     with cols[i % 3]:
-                        st.markdown(f"""
-                        <div style="
-                            background: #FFFFFF;
-                            border: 1px solid #E2E8F0;
-                            border-radius: 10px;
-                            padding: 16px;
-                            margin-bottom: 14px;
-                            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
-                        ">
-                            <div style="font-size: 0.72rem; font-weight: 700; color: #2563EB; text-transform: uppercase; letter-spacing: 0.05em;">
-                                {r['department_name']}
-                            </div>
-                            <div style="font-size: 1.05rem; font-weight: 700; color: #0F172A; margin: 4px 0;">
-                                {r['prod_name']}
-                            </div>
-                            <div style="font-size: 0.8rem; color: #64748B; margin-bottom: 6px;">
-                                SKU: <code>{r['article_id']}</code> | Colour: <b>{r['colour_group_name']}</b>
-                            </div>
-                            <div style="font-size: 0.82rem; font-weight: 700; color: #059669; margin-bottom: 8px;">
-                                Hybrid Affinity Score: {r['hybrid_score']:.3f}
-                            </div>
-                            <div style="font-size: 0.76rem; color: #334155; background: #F8FAFC; border: 1px solid #F1F5F9; padding: 6px 10px; border-radius: 6px;">
-                                {r['reason']}
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
+                        card_rec = (
+                            f'<div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:10px;padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(15,23,42,0.04);">'
+                            f'<div style="font-size:0.72rem;font-weight:700;color:#2563EB;text-transform:uppercase;letter-spacing:0.05em;">{r["department_name"]}</div>'
+                            f'<div style="font-size:1.05rem;font-weight:700;color:#0F172A;margin:4px 0;">{r["prod_name"]}</div>'
+                            f'<div style="font-size:0.8rem;color:#64748B;margin-bottom:6px;">SKU: <code>{r["article_id"]}</code> | Colour: <b>{r["colour_group_name"]}</b></div>'
+                            f'<div style="font-size:0.82rem;font-weight:700;color:#059669;margin-bottom:8px;">Hybrid Affinity Score: {r["hybrid_score"]:.3f}</div>'
+                            f'<div style="font-size:0.76rem;color:#334155;background:#F8FAFC;border:1px solid #F1F5F9;padding:6px 10px;border-radius:6px;">{r["reason"]}</div>'
+                            f'</div>'
+                        )
+                        st.markdown(card_rec, unsafe_allow_html=True)
             else:
                 st.info("No recommendations found for this customer.")
 

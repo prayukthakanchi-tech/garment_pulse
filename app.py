@@ -384,21 +384,16 @@ conn = get_db_connection()
 # ─────────────────────────────────────────────
 # Sidebar Navigation
 # ─────────────────────────────────────────────
-st.sidebar.markdown(f"""
-<div class="brand-container">
-    <div class="brand-header-flex">
-        <div class="brand-mark">GP</div>
-        <div>
-            <div class="brand-title">{DASHBOARD_TITLE}</div>
-            <div class="brand-tagline">{DASHBOARD_SUBTITLE}</div>
-        </div>
-    </div>
-    <div class="brand-status-pill">
-        <span class="pulse-dot"></span>
-        <span>LIVE OLAP ENGINE</span>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+sidebar_brand_html = (
+    f'<div class="brand-container">'
+    f'<div class="brand-header-flex">'
+    f'<div class="brand-mark">GP</div>'
+    f'<div><div class="brand-title">{DASHBOARD_TITLE}</div>'
+    f'<div class="brand-tagline">{DASHBOARD_SUBTITLE}</div></div></div>'
+    f'<div class="brand-status-pill"><span class="pulse-dot"></span><span>LIVE OLAP ENGINE</span></div>'
+    f'</div>'
+)
+st.sidebar.markdown(sidebar_brand_html, unsafe_allow_html=True)
 
 pages = {
     "1. Executive Overview": "p01",
@@ -421,19 +416,17 @@ selected_page_name = st.sidebar.radio(
     label_visibility="collapsed",
 )
 
-# Sidebar metadata & limitation notices
-st.sidebar.markdown("""
-<div style="margin-top: 24px; padding-top: 14px; border-top: 1px solid #1E293B;">
-    <div style="font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #64748B; margin-bottom: 6px;">
-        AUDITED DATA ARCHIVE
-    </div>
-    <div style="font-size: 0.74rem; color: #94A3B8; line-height: 1.6;">
-        <div>Transactions: <span style="color: #F8FAFC; font-weight: 600;">31,788,324</span></div>
-        <div>Customers: <span style="color: #F8FAFC; font-weight: 600;">1,362,281</span></div>
-        <div>Engine: <span style="color: #60A5FA; font-weight: 600;">DuckDB Vectorized OLAP</span></div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+sidebar_footer_html = (
+    '<div style="margin-top:24px;padding-top:14px;border-top:1px solid #1E293B;">'
+    '<div style="font-size:0.66rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#64748B;margin-bottom:6px;">'
+    'AUDITED DATA ARCHIVE</div>'
+    '<div style="font-size:0.74rem;color:#94A3B8;line-height:1.6;">'
+    '<div>Transactions: <span style="color:#F8FAFC;font-weight:600;">31,788,324</span></div>'
+    '<div>Customers: <span style="color:#F8FAFC;font-weight:600;">1,362,281</span></div>'
+    '<div>Engine: <span style="color:#60A5FA;font-weight:600;">DuckDB Vectorized OLAP</span></div>'
+    '</div></div>'
+)
+st.sidebar.markdown(sidebar_footer_html, unsafe_allow_html=True)
 
 st.sidebar.markdown("<br>", unsafe_allow_html=True)
 with st.sidebar.expander("Data Governance Guardrails", expanded=False):

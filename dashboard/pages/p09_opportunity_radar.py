@@ -95,31 +95,20 @@ def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
 
         for r in recs:
             status_color = "#059669" if "Strong" in r["classification"] else ("#2563EB" if "Emerging" in r["classification"] else "#DC2626")
-            st.markdown(f"""
-            <div style="
-                background: #FFFFFF;
-                border-left: 4px solid {status_color};
-                border-top: 1px solid #E2E8F0;
-                border-right: 1px solid #E2E8F0;
-                border-bottom: 1px solid #E2E8F0;
-                border-radius: 8px;
-                padding: 16px 20px;
-                margin-bottom: 16px;
-                box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
-            ">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-size: 1.15rem; font-weight: 700; color: #0F172A;">{r['category']}</span>
-                    <span style="background: #F1F5F9; color: {status_color}; font-weight: 700; font-size: 0.82rem; padding: 4px 10px; border-radius: 9999px;">
-                        {r['classification']} (Score: {r['opportunity_score']:.1f})
-                    </span>
-                </div>
-                <div style="font-size: 0.88rem; color: #1E293B; margin-bottom: 6px;"><b>OBSERVATION:</b> {r['observation']}</div>
-                <div style="font-size: 0.88rem; color: #475569; margin-bottom: 6px;"><b>EVIDENCE:</b> {r['evidence']}</div>
-                <div style="font-size: 0.88rem; color: #1E3A8A; margin-bottom: 6px;"><b>BUSINESS IMPLICATION:</b> {r['business_implication']}</div>
-                <div style="font-size: 0.88rem; color: #059669; font-weight: 600; margin-bottom: 6px;"><b>RECOMMENDED ACTION:</b> {r['recommended_action']}</div>
-                <div style="font-size: 0.8rem; color: #64748B; font-style: italic;"><b>LIMITATION:</b> {r['limitation']}</div>
-            </div>
-            """, unsafe_allow_html=True)
+            action_card_html = (
+                f'<div style="background:#FFFFFF;border-left:4px solid {status_color};border-top:1px solid #E2E8F0;border-right:1px solid #E2E8F0;border-bottom:1px solid #E2E8F0;border-radius:8px;padding:16px 20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(15,23,42,0.04);">'
+                f'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
+                f'<span style="font-size:1.15rem;font-weight:700;color:#0F172A;">{r["category"]}</span>'
+                f'<span style="background:#F1F5F9;color:{status_color};font-weight:700;font-size:0.82rem;padding:4px 10px;border-radius:9999px;">{r["classification"]} (Score: {r["opportunity_score"]:.1f})</span>'
+                f'</div>'
+                f'<div style="font-size:0.88rem;color:#1E293B;margin-bottom:6px;"><b>OBSERVATION:</b> {r["observation"]}</div>'
+                f'<div style="font-size:0.88rem;color:#475569;margin-bottom:6px;"><b>EVIDENCE:</b> {r["evidence"]}</div>'
+                f'<div style="font-size:0.88rem;color:#1E3A8A;margin-bottom:6px;"><b>BUSINESS IMPLICATION:</b> {r["business_implication"]}</div>'
+                f'<div style="font-size:0.88rem;color:#059669;font-weight:600;margin-bottom:6px;"><b>RECOMMENDED ACTION:</b> {r["recommended_action"]}</div>'
+                f'<div style="font-size:0.8rem;color:#64748B;font-style:italic;"><b>LIMITATION:</b> {r["limitation"]}</div>'
+                f'</div>'
+            )
+            st.markdown(action_card_html, unsafe_allow_html=True)
 
     with t3:
         st.markdown("### Guarded AI Decision Insights Assistant")
