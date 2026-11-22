@@ -63,3 +63,29 @@ def test_opportunity_engine_card_generation(test_db):
         assert "business_implication" in c
         assert "recommended_action" in c
         assert "limitation" in c
+
+
+def test_cohort_heatmap_pandas_compat():
+    """Verify plot_cohort_heatmap handles both pandas map and applymap without AttributeError."""
+    import pandas as pd
+    from dashboard.visualisations.customer_charts import plot_cohort_heatmap
+
+    df = pd.DataFrame(
+        [[100.0, 15.5], [100.0, None]],
+        index=["2020-01", "2020-02"],
+        columns=["M0", "M1"],
+    )
+    fig = plot_cohort_heatmap(df)
+    assert fig is not None
+    assert len(fig.data) > 0
+
+
+def test_channel_department_contribution_columns(test_db):
+    """Verify ChannelIntelligence department contribution produces purchase_volume column."""
+    from src.analytics.channel_intelligence import ChannelIntelligence
+
+    chi = ChannelIntelligence(test_db)
+    df = chi.get_channel_department_contribution(top_n=5)
+    assert "department_name" in df.columns
+    assert "purchase_volume" in df.columns
+    assert "channel_label" in df.columns

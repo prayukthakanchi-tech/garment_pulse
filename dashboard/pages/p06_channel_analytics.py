@@ -126,7 +126,7 @@ def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
     fig_d = px.bar(
         dept_contrib,
         x="department_name",
-        y="channel_volume",
+        y="purchase_volume",
         color="channel_label",
         barmode="group",
         color_discrete_map={"Channel 1": "#1E3A8A", "Channel 2": "#0D9488"},

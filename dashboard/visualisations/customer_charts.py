@@ -36,8 +36,12 @@ def plot_cohort_heatmap(pivot_df: pd.DataFrame) -> go.Figure:
     if pivot_df.empty:
         return go.Figure()
 
-    # Create formatted text matrix
-    text_matrix = pivot_df.applymap(lambda v: f"{v:.1f}%" if pd.notnull(v) else "")
+    # Create formatted text matrix (compatible across pandas < 2.1 and pandas >= 2.1/2.2)
+    format_fn = lambda v: f"{v:.1f}%" if pd.notnull(v) else ""
+    if hasattr(pivot_df, "map"):
+        text_matrix = pivot_df.map(format_fn)
+    else:
+        text_matrix = pivot_df.applymap(format_fn)
 
     fig = go.Figure(
         go.Heatmap(
