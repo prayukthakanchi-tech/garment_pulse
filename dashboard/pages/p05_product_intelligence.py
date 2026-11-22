@@ -114,6 +114,13 @@ def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
             hide_index=True,
         )
 
+        st.download_button(
+            label="Download SKU Performance Data (CSV)",
+            data=articles_df.to_csv(index=False),
+            file_name="garmentpulse_sku_performance.csv",
+            mime="text/csv",
+        )
+
         # 3. Individual Article Trajectory Drilldown
         st.markdown("### Single Article Weekly Demand Trajectory")
         top_art = articles_df["article_id"].iloc[0]

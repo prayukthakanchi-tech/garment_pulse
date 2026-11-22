@@ -75,6 +75,14 @@ def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
                 recs = get_hybrid_recommendations_cached(selected_cust, n=12)
 
             if recs:
+                recs_df = pd.DataFrame(recs)
+                st.download_button(
+                    label="Export Recommendations to CSV",
+                    data=recs_df.to_csv(index=False),
+                    file_name=f"garmentpulse_recommendations_{selected_cust[:10]}.csv",
+                    mime="text/csv",
+                )
+
                 # Render 3 columns of recommendation cards
                 cols = st.columns(3)
                 for i, r in enumerate(recs):

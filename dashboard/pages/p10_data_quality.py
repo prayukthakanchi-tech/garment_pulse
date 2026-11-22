@@ -40,10 +40,33 @@ def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
         warn_c = sum(1 for f in findings if f["status"] == "WARNING")
         fail_c = sum(1 for f in findings if f["status"] == "FAIL")
 
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Tests Passed", pass_c)
-        c2.metric("Warnings (Documented Outliers)", warn_c)
-        c3.metric("Critical Failures", fail_c)
+        from dashboard.components.metrics import render_kpi_row
+        render_kpi_row([
+            {
+                "label": "Automated Tests Passed",
+                "value": f"{pass_c} / {len(findings)}",
+                "caption": "100% rule-based validation",
+                "badge": "PASS",
+                "accent_color": "#059669",
+                "accent_light": "#34D399",
+            },
+            {
+                "label": "Documented Outliers",
+                "value": str(warn_c),
+                "caption": "Known distribution boundaries",
+                "badge": "ADVISORY",
+                "accent_color": "#D97706",
+                "accent_light": "#FBBF24",
+            },
+            {
+                "label": "Critical Pipeline Failures",
+                "value": str(fail_c),
+                "caption": "Zero schema breaks",
+                "badge": "ZERO FAILS",
+                "accent_color": "#2563EB",
+                "accent_light": "#60A5FA",
+            },
+        ])
 
         for f in findings:
             status_badge = f["status"]

@@ -48,6 +48,16 @@ class DemandForecaster:
     ) -> pd.DataFrame:
         """Extracts complete chronological weekly transaction series for a category."""
         col = self.VALID_LEVELS.get(level.lower().strip(), "department_name")
+        if col == "department_name":
+            try:
+                sql = "SELECT week AS week_date, volume AS purchase_volume FROM v_weekly_summary WHERE department_name = ? ORDER BY week_date ASC"
+                df = self.conn.execute(sql, [category]).fetchdf()
+                if not df.empty:
+                    df["week_date"] = pd.to_datetime(df["week_date"])
+                    return df
+            except Exception:
+                pass
+
         sql = f"""
         SELECT
             DATE_TRUNC('week', t.t_dat) AS week_date,

@@ -144,18 +144,18 @@ st.markdown("""
         padding-left: 4px;
     }
 
-    /* Transform Streamlit Radio Navigation into Linear/Stripe style Navigation Items */
-    div[data-testid="stRadio"] div[role="radiogroup"] {
+    /* Transform Sidebar Navigation into Linear/Stripe style Navigation Items */
+    [data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] {
         display: flex;
         flex-direction: column;
         gap: 3px;
     }
 
-    div[data-testid="stRadio"] label > div:first-child {
+    [data-testid="stSidebar"] div[data-testid="stRadio"] label > div:first-child {
         display: none !important;
     }
 
-    div[data-testid="stRadio"] label {
+    [data-testid="stSidebar"] div[data-testid="stRadio"] label {
         display: flex !important;
         align-items: center;
         padding: 9px 12px !important;
@@ -170,13 +170,13 @@ st.markdown("""
         margin: 0 !important;
     }
 
-    div[data-testid="stRadio"] label:hover {
+    [data-testid="stSidebar"] div[data-testid="stRadio"] label:hover {
         background: rgba(255, 255, 255, 0.05) !important;
         color: #F8FAFC !important;
         border-color: rgba(255, 255, 255, 0.08) !important;
     }
 
-    div[data-testid="stRadio"] label:has(input:checked) {
+    [data-testid="stSidebar"] div[data-testid="stRadio"] label:has(input:checked) {
         background: linear-gradient(90deg, rgba(37, 99, 235, 0.2) 0%, rgba(37, 99, 235, 0.05) 100%) !important;
         border-left: 3px solid #3B82F6 !important;
         border-top: 1px solid rgba(59, 130, 246, 0.2) !important;
@@ -186,9 +186,55 @@ st.markdown("""
         font-weight: 600 !important;
     }
 
-    div[data-testid="stRadio"] label:has(input:checked) p {
+    [data-testid="stSidebar"] div[data-testid="stRadio"] label:has(input:checked) p {
         color: #FFFFFF !important;
         font-weight: 600 !important;
+    }
+
+    /* Main Content Horizontal Segmented Controls */
+    .block-container div[data-testid="stRadio"] div[role="radiogroup"] {
+        display: flex;
+        flex-direction: row;
+        gap: 4px;
+        background: #F1F5F9;
+        padding: 4px;
+        border-radius: 10px;
+        border: 1px solid #E2E8F0;
+    }
+
+    .block-container div[data-testid="stRadio"] label > div:first-child {
+        display: none !important;
+    }
+
+    .block-container div[data-testid="stRadio"] label {
+        display: flex !important;
+        align-items: center;
+        padding: 6px 14px !important;
+        border-radius: 7px !important;
+        font-size: 0.82rem !important;
+        font-weight: 600 !important;
+        color: #64748B !important;
+        background: transparent !important;
+        border: 1px solid transparent !important;
+        cursor: pointer !important;
+        transition: all 0.15s ease !important;
+        margin: 0 !important;
+    }
+
+    .block-container div[data-testid="stRadio"] label:hover {
+        color: #0F172A !important;
+    }
+
+    .block-container div[data-testid="stRadio"] label:has(input:checked) {
+        background: #FFFFFF !important;
+        color: #0F172A !important;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+        border: 1px solid #E2E8F0 !important;
+    }
+
+    .block-container div[data-testid="stRadio"] label:has(input:checked) p {
+        color: #0F172A !important;
+        font-weight: 700 !important;
     }
     
     /* Tabs styling — Modern Segmented Control */

@@ -70,6 +70,13 @@ def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
             hide_index=True,
         )
 
+        st.download_button(
+            label="Download Opportunity Scores Table (CSV)",
+            data=scores_df.to_csv(index=False),
+            file_name=f"garmentpulse_opportunity_scores_{level_k}.csv",
+            mime="text/csv",
+        )
+
         with st.expander("Transparent Scoring Formula & Weighting Schema"):
             st.markdown("""
             **Relative Opportunity Score Formula:**

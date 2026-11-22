@@ -73,6 +73,12 @@ def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
                 "Upper Bound (95%)": forecast_data["upper_bound"],
             })
             st.dataframe(proj_df, use_container_width=True, hide_index=True)
+            st.download_button(
+                label="Download Forecast Horizon (CSV)",
+                data=proj_df.to_csv(index=False),
+                file_name=f"garmentpulse_forecast_{selected_cat.lower().replace(' ', '_')}.csv",
+                mime="text/csv",
+            )
 
     with t2:
         st.markdown("### Walk-Forward Chronological Model Backtesting")
