@@ -18,12 +18,20 @@ from dashboard.data_service import (
     get_department_attribute_heatmap_cached,
     get_colour_garment_combinations_cached,
 )
+from dashboard.components.headers import render_page_header
+from dashboard.components.containers import render_card_header
 
 
 def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
-    st.markdown("## Fashion Attribute & Design Intelligence")
-    st.markdown(
-        "Investigate how physical garment attributes (colour palette, garment type, graphical patterns) influence consumer purchasing patterns."
+    render_page_header(
+        title="Fashion Attribute & Design Intelligence",
+        subtitle="Investigate how physical garment traits (colour palette, garment group, graphical appearance) drive consumer demand.",
+        breadcrumb="DESIGN & PRODUCT INTELLIGENCE",
+        badges=[
+            ("50 Colour Families", "violet"),
+            ("Cross-Attribute Co-Occurrence", "blue"),
+            ("Palette Velocity", "amber"),
+        ],
     )
 
     t1, t2, t3 = st.tabs(["Colour Palette Performance", "Garment Group Velocity", "Cross-Attribute Heatmap"])

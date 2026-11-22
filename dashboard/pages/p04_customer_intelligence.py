@@ -22,12 +22,20 @@ from dashboard.data_service import (
     get_customer_activity_trends_cached,
     get_repeat_purchase_distribution_cached,
 )
+from dashboard.components.headers import render_page_header
+from dashboard.components.containers import render_card_header
 
 
 def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
-    st.markdown("## Customer Lifecycle & Cohort Intelligence")
-    st.markdown(
-        "Evaluate measurable customer segmentation tiers, repeat purchase activity, and historical monthly cohort progression."
+    render_page_header(
+        title="Customer Lifecycle & Cohort Intelligence",
+        subtitle="Evaluate measurable customer segmentation tiers, repeat purchase activity, and historical monthly cohort progression.",
+        breadcrumb="CUSTOMER INTELLIGENCE",
+        badges=[
+            ("1.36M Purchasing Base", "blue"),
+            ("67.1% Repeat Rate", "green"),
+            ("12-Month Cohorts", "violet"),
+        ],
     )
 
     # 1. Customer Overview KPI Row
@@ -38,21 +46,29 @@ def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
         {
             "label": "Total Purchasing Base",
             "value": f"{overview['total_purchasing_customers']:,}",
+            "caption": "Verified transacting entities",
+            "badge": "LIFETIME",
             "help": "Distinct customer entities with at least 1 historical purchase.",
         },
         {
             "label": "Active Customers (30D)",
             "value": f"{overview['active_30d']:,}",
+            "caption": "Recent 30-day window",
+            "badge": "RECENCY",
             "help": "Customers with purchases in the most recent 30-day window.",
         },
         {
             "label": "Active Customers (90D)",
             "value": f"{overview['active_90d']:,}",
+            "caption": "Recent quarter activity",
+            "badge": "QUARTERLY",
             "help": "Customers active within the last 90 days.",
         },
         {
             "label": "Repeat Customer Ratio",
             "value": f"{overview['repeat_customer_rate_pct']}%",
+            "caption": "2+ distinct purchase dates",
+            "badge": "LOYALTY",
             "help": "Percentage of customers who made purchases on 2 or more distinct calendar dates.",
         },
     ])

@@ -13,6 +13,8 @@ from dashboard.visualisations.forecast_charts import (
     plot_demand_forecast,
     plot_backtest_comparison,
 )
+from dashboard.components.headers import render_page_header
+from dashboard.components.containers import render_card_header
 from dashboard.data_service import (
     get_top_forecasting_categories_cached,
     get_demand_forecast_cached,
@@ -21,9 +23,15 @@ from dashboard.data_service import (
 
 
 def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
-    st.markdown("## Fashion Demand Forecasting & Backtesting")
-    st.markdown(
-        "Generate multi-week purchase volume projections and validate statistical models using chronological holdout backtests."
+    render_page_header(
+        title="Fashion Demand Forecasting & Backtesting",
+        subtitle="Generate multi-week forward volume projections with prediction intervals and validate models via chronological backtests.",
+        breadcrumb="PREDICTIVE INTELLIGENCE",
+        badges=[
+            ("Ensemble Forecast", "blue"),
+            ("8-Week Prediction Interval", "amber"),
+            ("Walk-Forward Backtest", "green"),
+        ],
     )
 
     # 1. Category & Level Selection Controls

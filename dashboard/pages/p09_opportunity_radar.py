@@ -16,14 +16,22 @@ from dashboard.data_service import (
     get_opportunity_scores_cached,
     get_opportunity_recommendations_cached,
 )
+from dashboard.components.headers import render_page_header
+from dashboard.components.containers import render_card_header
 from src.database.connection import get_cursor
 from src.insights.ai_assistant import AIBusinessAssistant
 
 
 def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
-    st.markdown("## Commercial Opportunity Radar & AI Decision Assistant")
-    st.markdown(
-        "Platform differentiating engine: Synthesizes volume growth, customer expansion, repeat retention, and assortment concentration into actionable merchandising priorities."
+    render_page_header(
+        title="Commercial Opportunity Radar & AI Assistant",
+        subtitle="Platform differentiating engine: Synthesizes volume momentum, customer acquisition, repeat retention, and assortment concentration into actionable priorities.",
+        breadcrumb="STRATEGIC DECISION ENGINE",
+        badges=[
+            ("Multi-Factor Opportunity Scoring", "blue"),
+            ("4-Quadrant Quadrant Matrix", "violet"),
+            ("Grounded AI Assistant", "green"),
+        ],
     )
 
     t1, t2, t3 = st.tabs(["Opportunity Radar & Rankings", "Structured Merchandising Action Cards", "AI Merchandising Assistant"])

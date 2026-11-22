@@ -32,94 +32,191 @@ st.set_page_config(
 st.markdown("""
 <style>
     /* Google Fonts typography import */
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
     html, body, [class*="css"] {
         font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         color: #0F172A;
     }
     
-    /* Warm ivory / neutral background */
+    /* Modern crisp slate background with top mesh highlight */
     .stApp {
-        background-color: #FAF9F6;
+        background-color: #F8FAFC;
+        background-image: radial-gradient(at 50% 0%, rgba(241, 245, 249, 0.8) 0px, transparent 65%);
     }
 
     /* Main container max width and padding */
     .block-container {
-        padding-top: 2rem;
-        padding-bottom: 3rem;
-        padding-left: 3rem;
-        padding-right: 3rem;
+        padding-top: 1.8rem;
+        padding-bottom: 3.5rem;
+        padding-left: 2.8rem;
+        padding-right: 2.8rem;
+        max-width: 1440px;
     }
     
-    /* Sidebar styling */
+    /* Sidebar styling — Deep Obsidian with subtle border */
     [data-testid="stSidebar"] {
-        background-color: #0F172A;
+        background-color: #090D16;
         border-right: 1px solid #1E293B;
     }
 
-    [data-testid="stSidebar"] [class*="css"], [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label {
+    [data-testid="stSidebar"] [class*="css"], [data-testid="stSidebar"] p, [data-testid="stSidebar"] span {
         color: #E2E8F0 !important;
     }
 
-    .sidebar-header {
-        padding: 12px 4px 20px 4px;
+    /* Brand Header in Sidebar */
+    .brand-container {
+        padding: 12px 4px 18px 4px;
         border-bottom: 1px solid #1E293B;
         margin-bottom: 20px;
     }
     
+    .brand-header-flex {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .brand-mark {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+        border-radius: 9px;
+        color: #FFFFFF;
+        font-weight: 800;
+        font-size: 0.95rem;
+        letter-spacing: -0.02em;
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.45);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    
     .brand-title {
-        font-size: 1.5rem;
+        font-size: 1.35rem;
         font-weight: 800;
         letter-spacing: -0.03em;
         color: #FFFFFF !important;
-        display: flex;
-        align-items: center;
-        gap: 8px;
+        line-height: 1.1;
     }
     
     .brand-tagline {
-        font-size: 0.78rem;
+        font-size: 0.74rem;
         font-weight: 500;
         color: #94A3B8 !important;
-        margin-top: 4px;
+        margin-top: 5px;
         line-height: 1.3;
     }
 
+    .brand-status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #34D399;
+        background: rgba(16, 185, 129, 0.12);
+        border: 1px solid rgba(16, 185, 129, 0.25);
+        padding: 3px 8px;
+        border-radius: 9999px;
+        margin-top: 10px;
+    }
+    
+    .pulse-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: #10B981;
+        box-shadow: 0 0 8px #10B981;
+        display: inline-block;
+    }
+
     .sidebar-nav-title {
-        font-size: 0.7rem;
+        font-size: 0.68rem;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.08em;
         color: #64748B !important;
         margin-bottom: 8px;
-        padding-left: 2px;
+        padding-left: 4px;
+    }
+
+    /* Transform Streamlit Radio Navigation into Linear/Stripe style Navigation Items */
+    div[data-testid="stRadio"] div[role="radiogroup"] {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+
+    div[data-testid="stRadio"] label > div:first-child {
+        display: none !important;
+    }
+
+    div[data-testid="stRadio"] label {
+        display: flex !important;
+        align-items: center;
+        padding: 9px 12px !important;
+        border-radius: 8px !important;
+        font-size: 0.85rem !important;
+        font-weight: 500 !important;
+        color: #94A3B8 !important;
+        background: transparent !important;
+        border: 1px solid transparent !important;
+        cursor: pointer !important;
+        transition: all 0.15s ease-in-out !important;
+        margin: 0 !important;
+    }
+
+    div[data-testid="stRadio"] label:hover {
+        background: rgba(255, 255, 255, 0.05) !important;
+        color: #F8FAFC !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+    }
+
+    div[data-testid="stRadio"] label:has(input:checked) {
+        background: linear-gradient(90deg, rgba(37, 99, 235, 0.2) 0%, rgba(37, 99, 235, 0.05) 100%) !important;
+        border-left: 3px solid #3B82F6 !important;
+        border-top: 1px solid rgba(59, 130, 246, 0.2) !important;
+        border-right: 1px solid rgba(59, 130, 246, 0.1) !important;
+        border-bottom: 1px solid rgba(59, 130, 246, 0.2) !important;
+        color: #FFFFFF !important;
+        font-weight: 600 !important;
+    }
+
+    div[data-testid="stRadio"] label:has(input:checked) p {
+        color: #FFFFFF !important;
+        font-weight: 600 !important;
     }
     
-    /* Tabs & cards styling */
+    /* Tabs styling — Modern Segmented Control */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 6px;
-        border-bottom: 1px solid #E2E8F0;
-        background-color: transparent;
-        padding-bottom: 4px;
+        gap: 4px;
+        background-color: #F1F5F9;
+        border: 1px solid #E2E8F0;
+        border-radius: 10px;
+        padding: 4px;
+        margin-bottom: 18px;
     }
 
     .stTabs [data-baseweb="tab"] {
-        padding: 10px 18px;
-        border-radius: 8px;
+        padding: 8px 18px;
+        border-radius: 7px;
         font-weight: 600;
-        font-size: 0.88rem;
-        color: #475569;
+        font-size: 0.84rem;
+        color: #64748B;
         background-color: transparent;
         border: none;
-        transition: all 0.15s ease-in-out;
+        transition: all 0.15s ease;
     }
 
     .stTabs [aria-selected="true"] {
         background-color: #FFFFFF !important;
-        color: #2563EB !important;
-        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
-        border: 1px solid #E2E8F0;
+        color: #0F172A !important;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+        border: 1px solid #E2E8F0 !important;
     }
     
     /* Metric styling override */
@@ -131,19 +228,55 @@ st.markdown("""
     }
 
     div[data-testid="stMetricLabel"] {
-        font-size: 0.75rem;
+        font-size: 0.72rem;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.06em;
         color: #64748B;
     }
     
     /* DataFrame containers */
     [data-testid="stDataFrame"] {
         border: 1px solid #E2E8F0;
-        border-radius: 8px;
+        border-radius: 10px;
         background: #FFFFFF;
-        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+        overflow: hidden;
+    }
+
+    /* Buttons styling */
+    .stButton > button {
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.86rem;
+        padding: 8px 18px;
+        transition: all 0.15s ease-in-out;
+        border: 1px solid #CBD5E1;
+    }
+
+    .stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #1E40AF 0%, #2563EB 100%);
+        border: 1px solid #1D4ED8;
+        color: #FFFFFF;
+        box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25);
+    }
+
+    .stButton > button[kind="primary"]:hover {
+        background: linear-gradient(135deg, #1D4ED8 0%, #1E3A8A 100%);
+        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.35);
+        transform: translateY(-1px);
+    }
+
+    /* Selectboxes and Inputs */
+    div[data-baseweb="select"] {
+        border-radius: 8px;
+    }
+
+    div[data-baseweb="select"] > div {
+        border-radius: 8px;
+        border-color: #CBD5E1;
+        background-color: #FFFFFF;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
     }
 
     /* Headings hierarchy */
@@ -159,7 +292,7 @@ st.markdown("""
     }
 
     h3 {
-        font-size: 1.25rem;
+        font-size: 1.15rem;
         margin-top: 1.2rem;
         margin-bottom: 0.6rem;
     }
@@ -206,9 +339,18 @@ conn = get_db_connection()
 # Sidebar Navigation
 # ─────────────────────────────────────────────
 st.sidebar.markdown(f"""
-<div class="sidebar-header">
-    <div class="brand-title">{DASHBOARD_TITLE}</div>
-    <div class="brand-tagline">{DASHBOARD_SUBTITLE}</div>
+<div class="brand-container">
+    <div class="brand-header-flex">
+        <div class="brand-mark">GP</div>
+        <div>
+            <div class="brand-title">{DASHBOARD_TITLE}</div>
+            <div class="brand-tagline">{DASHBOARD_SUBTITLE}</div>
+        </div>
+    </div>
+    <div class="brand-status-pill">
+        <span class="pulse-dot"></span>
+        <span>LIVE OLAP ENGINE</span>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -234,6 +376,19 @@ selected_page_name = st.sidebar.radio(
 )
 
 # Sidebar metadata & limitation notices
+st.sidebar.markdown("""
+<div style="margin-top: 24px; padding-top: 14px; border-top: 1px solid #1E293B;">
+    <div style="font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #64748B; margin-bottom: 6px;">
+        AUDITED DATA ARCHIVE
+    </div>
+    <div style="font-size: 0.74rem; color: #94A3B8; line-height: 1.6;">
+        <div>Transactions: <span style="color: #F8FAFC; font-weight: 600;">31,788,324</span></div>
+        <div>Customers: <span style="color: #F8FAFC; font-weight: 600;">1,362,281</span></div>
+        <div>Engine: <span style="color: #60A5FA; font-weight: 600;">DuckDB Vectorized OLAP</span></div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
 st.sidebar.markdown("<br>", unsafe_allow_html=True)
 with st.sidebar.expander("Data Governance Guardrails", expanded=False):
     st.markdown("""

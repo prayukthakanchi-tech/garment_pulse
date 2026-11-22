@@ -9,6 +9,8 @@ import streamlit as st
 import pandas as pd
 
 from config.settings import DATA_LIMITATIONS
+from dashboard.components.headers import render_page_header
+from dashboard.components.containers import render_card_header
 from dashboard.data_service import (
     get_data_validation_suite_cached,
     get_data_cleaning_summary_cached,
@@ -16,9 +18,15 @@ from dashboard.data_service import (
 
 
 def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
-    st.markdown("## Data Quality, Governance & Limitation Architecture")
-    st.markdown(
-        "Complete transparency regarding dataset validation, deduplication rationale, transformation audit trails, and non-negotiable analytical boundaries."
+    render_page_header(
+        title="Data Quality, Governance & Limitations",
+        subtitle="Complete transparency regarding dataset validation, deduplication rationale, transformation audit trails, and non-negotiable analytical boundaries.",
+        breadcrumb="AUDIT & COMPLIANCE",
+        badges=[
+            ("10 Automated Rule Checks", "green"),
+            ("Audit Trail Verified", "blue"),
+            ("11 Governance Boundaries", "amber"),
+        ],
     )
 
     t1, t2, t3 = st.tabs(["Automated Validation Suite", "Cleaning Decisions Log", "Empirical Data Limitations"])

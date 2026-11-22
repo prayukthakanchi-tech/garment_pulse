@@ -15,12 +15,20 @@ from dashboard.data_service import (
     get_hybrid_recommendations_cached,
     get_model_evaluation_cached,
 )
+from dashboard.components.headers import render_page_header
+from dashboard.components.containers import render_card_header
 
 
 def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
-    st.markdown("## Personalised Fashion Recommendation Engine")
-    st.markdown(
-        "Generate personalised article discovery sets using hybrid ranking: community popularity, design attribute affinities, and collaborative co-purchase graphs."
+    render_page_header(
+        title="Personalised Fashion Recommendation Engine",
+        subtitle="Generate discovery sets using hybrid ranking: community popularity, content attribute affinity, and item-item co-purchase graphs.",
+        breadcrumb="MACHINE LEARNING & DISCOVERY",
+        badges=[
+            ("Hybrid Ensembling", "blue"),
+            ("Chronological Holdout", "green"),
+            ("MAP@12 Benchmarked", "violet"),
+        ],
     )
 
     # Sample active customers with diverse history

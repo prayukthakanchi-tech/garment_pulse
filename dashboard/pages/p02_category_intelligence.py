@@ -13,6 +13,8 @@ from dashboard.visualisations.category_charts import (
     plot_category_growth_scatter,
     plot_category_treemap,
 )
+from dashboard.components.headers import render_page_header
+from dashboard.components.containers import render_card_header
 from dashboard.data_service import (
     get_category_performance_cached,
     get_category_growth_cached,
@@ -21,9 +23,15 @@ from dashboard.data_service import (
 
 
 def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
-    st.markdown("## Category Performance & Momentum Intelligence")
-    st.markdown(
-        "Analyze demand distribution, growth velocity, and concentration across departments, sections, and garment groups."
+    render_page_header(
+        title="Category & Assortment Intelligence",
+        subtitle="Analyze demand distribution, growth velocity, and category concentration across departments, sections, and garment groups.",
+        breadcrumb="MERCHANDISING INTELLIGENCE",
+        badges=[
+            ("Multi-Level Taxonomy", "blue"),
+            ("HHI Concentration", "violet"),
+            ("PoP Momentum Signals", "green"),
+        ],
     )
 
     # Controls

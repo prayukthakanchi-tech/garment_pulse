@@ -11,6 +11,8 @@ import plotly.graph_objects as go
 
 from dashboard.components.metrics import render_kpi_row
 from dashboard.components.charts import apply_chart_style
+from dashboard.components.headers import render_page_header
+from dashboard.components.containers import render_card_header
 from dashboard.visualisations.category_charts import plot_category_ranking_bar
 from dashboard.data_service import (
     get_executive_kpis,
@@ -21,9 +23,15 @@ from dashboard.data_service import (
 
 
 def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
-    st.markdown("## Executive Merchandising Overview")
-    st.markdown(
-        "Macro demand signals, portfolio volume velocity, and top department contributions across the observation window."
+    render_page_header(
+        title="Executive Merchandising Overview",
+        subtitle="Macro demand signals, portfolio volume velocity, and top department contributions across the observation window.",
+        breadcrumb="PORTFOLIO INTELLIGENCE",
+        badges=[
+            ("31,788,324 Lines Audited", "blue"),
+            ("DuckDB OLAP Engine", "green"),
+            ("Zero Synthetic Data", "slate"),
+        ],
     )
 
     # 1. Macro KPIs
@@ -34,35 +42,53 @@ def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
         {
             "label": "Total Observed Lines",
             "value": f"{macro['total_volume']:,}",
+            "caption": "Audited transaction records",
+            "badge": "PORTFOLIO",
             "help": "Total physical purchase records observed across historical transaction logs.",
         },
         {
             "label": "Unique Purchasing Customers",
             "value": f"{macro['total_customers']:,}",
+            "caption": "Active customer entities",
+            "badge": "REACH",
             "help": "Distinct customer entities with at least one recorded purchase event.",
         },
         {
             "label": "Active Catalogue Articles",
             "value": f"{macro['total_articles']:,}",
+            "caption": "Transacted commercial SKUs",
+            "badge": "ASSORTMENT",
             "help": "Distinct article SKUs purchased in transaction records.",
         },
         {
             "label": "Normalised Price Index",
             "value": f"{macro['avg_price_index']:.4f}",
+            "caption": "Dimensionless index (0-1)",
+            "badge": "INDEX",
             "help": "Dimensionless average price index (0 to 1). Not currency amount.",
         },
     ])
 
-    st.markdown("---")
+    st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
 
     # 2. Charts Row
     col1, col2 = st.columns([6, 6])
 
     with col1:
+        render_card_header(
+            title="Top 10 Departments by Purchase Volume",
+            subtitle="Ranked physical transaction lines observed across catalog",
+            badge="PORTFOLIO MIX",
+        )
         dept_df = get_category_performance_cached(level="department", min_transactions=200)
         st.plotly_chart(plot_category_ranking_bar(dept_df, top_n=10), use_container_width=True)
 
     with col2:
+        render_card_header(
+            title="Monthly Purchase Volume Trajectory",
+            subtitle="Aggregated monthly transaction frequency over observation horizon",
+            badge="MACRO TREND",
+        )
         trend_df = get_monthly_volume_trend()
         fig = go.Figure()
         fig.add_trace(
@@ -87,7 +113,12 @@ def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
         st.plotly_chart(fig, use_container_width=True)
 
     # 3. Category Momentum Highlights
-    st.markdown("### Category Demand Momentum Leaders")
+    st.markdown("<div style='margin-top: 16px;'></div>", unsafe_allow_html=True)
+    render_card_header(
+        title="Category Demand Momentum Acceleration Leaderboard",
+        subtitle="Ranked period-over-period purchase volume momentum across top merchandising categories",
+        badge="GROWTH VELOCITY",
+    )
     growth_df = get_category_growth_cached(level="department", min_transactions=200)
     top_accel = growth_df[growth_df["momentum_signal"] == "Accelerating Demand"].head(6)
 

@@ -8,7 +8,7 @@ from typing import Optional
 import plotly.graph_objects as go
 
 CHART_THEME = {
-    "font_family": "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    "font_family": "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     "background_color": "#FFFFFF",
     "paper_color": "#FFFFFF",
     "text_color": "#0F172A",        # Slate 900

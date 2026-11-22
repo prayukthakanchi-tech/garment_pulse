@@ -13,6 +13,8 @@ from dashboard.visualisations.product_charts import (
     plot_product_classification_bar,
     plot_article_trend_line,
 )
+from dashboard.components.headers import render_page_header
+from dashboard.components.containers import render_card_header
 from dashboard.data_service import (
     get_product_classifications_cached,
     get_product_performance_cached,
@@ -21,9 +23,15 @@ from dashboard.data_service import (
 
 
 def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
-    st.markdown("## Product Lifecycle & Article Velocity Intelligence")
-    st.markdown(
-        "Evaluate individual SKU performance, demand growth rates, active lifespans, and lifecycle transition stages."
+    render_page_header(
+        title="Product Lifecycle & Velocity Intelligence",
+        subtitle="Evaluate individual SKU performance, demand growth rates, active lifespans, and lifecycle transition stages.",
+        breadcrumb="CATALOG & SKU INTELLIGENCE",
+        badges=[
+            ("104,547 Transacted SKUs", "blue"),
+            ("Lifecycle Classification", "violet"),
+            ("Velocity Tracking", "green"),
+        ],
     )
 
     # 1. Lifecycle Classification Distribution

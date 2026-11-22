@@ -18,12 +18,20 @@ from dashboard.data_service import (
     get_channel_customer_overlap_cached,
     get_channel_department_contribution_cached,
 )
+from dashboard.components.headers import render_page_header
+from dashboard.components.containers import render_card_header
 
 
 def render(conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
-    st.markdown("## Sales Channel Distribution Intelligence")
-    st.markdown(
-        "Evaluate purchasing behaviors, basket sizes, and category preferences across Sales Channel 1 and Sales Channel 2."
+    render_page_header(
+        title="Sales Channel Dynamics & Distribution",
+        subtitle="Evaluate purchasing behaviors, customer penetration, and department preferences across Channel 1 and Channel 2.",
+        breadcrumb="OMNICHANNEL INTELLIGENCE",
+        badges=[
+            ("Channel 1 vs Channel 2", "blue"),
+            ("Cross-Channel Penetration", "violet"),
+            ("Price Index Spread", "amber"),
+        ],
     )
 
     # 1. Macro Channel Metrics
