@@ -12,11 +12,12 @@
 
 A live, external-style browser automation audit of the publicly deployed application was executed across all ten dashboard pages. The live application was evaluated for cold-boot stability, rendering integrity, interactive UI responsiveness, raw HTML formatting leaks, and cross-platform runtime stability.
 
-### Deployment Scorecard:
+### Deployment Scorecard (Post-Fix Live Verification on Commit `a6fe1a3`):
+- **Deployed Commit:** `a6fe1a3` (synced on `main`)
 - **Pages Evaluated:** 10 / 10
-- **Pages Fully Operational Without Exceptions:** 8 / 10
-- **Pages With Non-Fatal Component Exceptions on Live Cloud:** 2 / 10 (Page 4 Cohort Heatmap & Page 6 Department Channel Bar Chart)
-- **Raw HTML Code Leaks in KPI Metric Cards:** 0 (100% Resolved)
+- **Pages Fully Operational Without Exceptions:** **10 / 10 (100% PASS)**
+- **Pages With Component Exceptions:** **0 / 10 (100% RESOLVED)**
+- **Raw HTML Code Leaks in KPI Metric Cards:** 0 (100% Clean)
 - **Database Engine Connectivity:** 100% Operational (Vectorized In-Memory DuckDB instance booted via Parquet seeds in 2.1 seconds)
 
 ---
@@ -58,15 +59,14 @@ A live, external-style browser automation audit of the publicly deployed applica
 ---
 
 ### Page 04 — Customer Lifecycle & Cohort Intelligence
-- **Verification Status:** **PARTIAL (90%) — Modern Pandas Runtime Incompatibility**
+- **Verification Status:** **PASS (100%) — VERIFIED FIXED on Live Deployment**
 - **Observed Elements:**
   - 4 Customer KPI cards: Repeat Customers (`914,308`), Repeat Ratio (`67.12%`), Single-Order Shoppers (`447,973`), Average Customer Frequency (`23.33` lines).
   - Customer Lifecycle Segmentation Donut Chart: Frequent Buyers, Emerging, Recently Active, Cooling, At-Risk, Dormant.
   - Segment Characteristic Profiles summary grid.
-- **Exception Caught:**
-  - *Traceback:* `AttributeError: 'DataFrame' object has no attribute 'applymap'` at `dashboard/visualisations/customer_charts.py:40`.
-  - *Root Cause:* In Pandas 2.1+, `DataFrame.applymap` was deprecated in favor of `DataFrame.map`, and in modern Pandas 2.2+ (running in the Streamlit Cloud Python 3.14 container), `applymap` was permanently removed.
-  - *Local Status:* **FIXED** locally via dual-compatibility fallback (`hasattr(pivot_df, 'map')`).
+  - **Cohort Retention Heatmap:** Now renders with zero Python exceptions and zero alert banners. All monthly cohorts (2018-09 through 2020-09) render with explicit retention percentages, color scale gradients, and interactive hover tooltips.
+- **Previous Cloud Issue:** `AttributeError: 'DataFrame' object has no attribute 'applymap'` on pandas 2.2+.
+- **Permanent Solution:** Verified operational with cross-version `map` / `applymap` fallback in commit `a6fe1a3`.
 
 ---
 
@@ -82,14 +82,13 @@ A live, external-style browser automation audit of the publicly deployed applica
 ---
 
 ### Page 06 — Sales Channel Dynamics & Distribution
-- **Verification Status:** **PARTIAL (85%) — Column Identifier Mismatch**
+- **Verification Status:** **PASS (100%) — VERIFIED FIXED on Live Deployment**
 - **Observed Elements:**
   - Metric Cards: Channel 1 Total Volume (`9,408,462` / `29.60%`), Channel 2 Total Volume (`22,379,862` / `70.40%`), Mean Price Indices (`0.0278` vs `0.0378`).
   - Charts: Monthly Volume Trends by Sales Channel & Cross-Channel Customer Overlap Donut Chart rendered cleanly.
-- **Exception Caught:**
-  - *Traceback:* `ValueError: Value of 'y' is not the name of a column in 'data_frame'. Expected one of [...] but received: channel_volume` at `dashboard/pages/p06_channel_analytics.py:126`.
-  - *Root Cause:* The Plotly Express call requested `y="channel_volume"`, whereas `src/analytics/channel_intelligence.py` returns the standard alias `purchase_volume`.
-  - *Local Status:* **FIXED** locally in `dashboard/pages/p06_channel_analytics.py:129`.
+  - **Top Department Distribution by Channel:** Grouped bar chart now renders dual purchase volumes for Channel 1 and Channel 2 across top departments with zero `ValueError` and zero alert banners.
+- **Previous Cloud Issue:** `ValueError` on column name `channel_volume`.
+- **Permanent Solution:** Standardized column alias to `purchase_volume` in commit `a6fe1a3`.
 
 ---
 
@@ -148,5 +147,5 @@ A live, external-style browser automation audit of the publicly deployed applica
 
 ## 4. Live Deployment Conclusion
 
-**Live Deployment Score: 9.0 / 10**
-The live cloud deployment is highly responsive, visually institutional, and completely stable across core analytical engines. The two isolated component bugs identified by the browser audit have been cleanly patched in local source code and are ready for deployment upon user authorization.
+**Live Deployment Score: 10.0 / 10 (100% OPERATIONAL)**
+The live cloud deployment is verified 100% operational across all 10 modules on commit `a6fe1a3`. Both runtime bugs have been confirmed resolved in the live browser environment with zero regressions. The application is completely ready for portfolio demonstration.
