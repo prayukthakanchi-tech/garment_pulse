@@ -188,9 +188,20 @@ st.markdown("""
 
 
 # ─────────────────────────────────────────────
-# Database Connection Check
+# Database Connection Check & Cloud Bootstrap
 # ─────────────────────────────────────────────
+CLOUD_DB_PATH = Path("data/garmentpulse_cloud.duckdb")
+
 if not DUCKDB_PATH.exists():
+    if CLOUD_DB_PATH.exists():
+        try:
+            import shutil
+            DUCKDB_PATH.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(CLOUD_DB_PATH, DUCKDB_PATH)
+        except Exception:
+            pass
+
+if not DUCKDB_PATH.exists() and not CLOUD_DB_PATH.exists():
     st.error(f"Analytical database not found at `{DUCKDB_PATH}`. Please run data ingestion first.")
     st.stop()
 

@@ -26,7 +26,11 @@ def get_db_connection(db_path: Optional[Union[str, Path]] = None) -> duckdb.Duck
     """
     path = Path(db_path) if db_path else DUCKDB_PATH
     if not path.exists():
-        raise FileNotFoundError(f"Database file not found at: {path}")
+        cloud_fallback = Path("data/garmentpulse_cloud.duckdb")
+        if cloud_fallback.exists():
+            path = cloud_fallback
+        else:
+            raise FileNotFoundError(f"Database file not found at: {path}")
 
     # Check if this thread already has an active connection
     conn = getattr(_thread_local, "conn", None)
