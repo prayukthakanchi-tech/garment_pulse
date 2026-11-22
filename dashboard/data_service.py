@@ -44,6 +44,12 @@ def get_executive_kpis() -> Dict[str, Any]:
 @st.cache_data(show_spinner=False)
 def get_monthly_volume_trend() -> pd.DataFrame:
     """Monthly transaction volume trajectory."""
+    import os
+    parquet_path = "data/processed/agg_monthly_volume.parquet"
+    if os.path.exists(parquet_path):
+        import duckdb
+        return duckdb.read_parquet(parquet_path).fetchdf()
+
     cur = get_cursor()
     try:
         sql = """
@@ -66,6 +72,16 @@ def get_monthly_volume_trend() -> pd.DataFrame:
 @st.cache_data(show_spinner=False)
 def get_category_performance_cached(level: str = "department", min_transactions: int = 200) -> pd.DataFrame:
     """Category volume, breadths, concentration, and price indices."""
+    import os
+    level_key = level.lower().strip().replace(" ", "_")
+    parquet_path = f"data/processed/agg_category_performance_{level_key}.parquet"
+    if os.path.exists(parquet_path):
+        import duckdb
+        df = duckdb.read_parquet(parquet_path).fetchdf()
+        if min_transactions > 0:
+            df = df[df["purchase_volume"] >= min_transactions]
+        return df
+
     from src.analytics.category_intelligence import CategoryIntelligence
     cur = get_cursor()
     try:

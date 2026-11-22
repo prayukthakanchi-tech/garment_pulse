@@ -25,13 +25,15 @@ database/*.duckdb
 database/*.duckdb.wal
 database/*.tmp
 *.duckdb
-!data/garmentpulse_cloud.duckdb
 
 # Data directories (Protect competition data)
 data/raw/*
 !data/raw/.gitkeep
 data/staging/*
 !data/staging/.gitkeep
+data/seed/*
+!data/seed/.gitkeep
+!data/seed/*.parquet
 data/processed/*
 !data/processed/.gitkeep
 !data/processed/agg_*.parquet
